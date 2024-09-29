@@ -1,0 +1,91 @@
+# my_api_sample_config
+api_integrator: 0.0.1
+info:
+  title: Interaction Configuration with API from My Supplier to integrate with my app
+  version: 1.0.0
+  description: This is a sample configuration file for API integrator
+  contact:
+    name: Developer
+    url: https://my.supplier.com
+    email: support@my.supplier.com
+supplier_servers:
+  - server: https://api.my.supplier.com
+    description: Production server
+  - server: https://sandbox.api.my.supplier.com
+    description: Sandbox server
+tags:
+  - name: items
+    description: Supplier Endpoints to manage items
+  - name: users
+    description: Supplier Endpoints to manage users
+actions:
+  get_item_part: # this is action name
+    tags:
+      - items
+    description: The actions needed to get item part
+    supplier_paths:
+    - path: items/part/{id}
+      request:
+        headers:
+          Authorization: 'Bearer {{token}}'
+        body:  # vars will be filled on runtime, must be between ''
+          item: graph
+          settings:
+            duration: '{{duration}}' # vars will be filled on runtime, must be between ''
+            asset:
+              symbol: '{{asset}}'
+            isVisible: true
+            timePeriod: 30
+            upColor: '#0FAF59'
+      responses:
+        - contains: 'ok'
+          code: '200'
+          triggers:
+            - perform: log
+              data:
+                debug: response.body
+                success: 'Successfully saved product'
+            - perform: http.post
+              data:
+                url: 'https://api.my.app.com/items/part/{{id}}'
+                body:
+                  item: graph
+                  settings:
+                    duration: '{{duration}}'
+                    asset:
+                      symbol: '{{asset}}'
+                    isVisible: true
+                    timePeriod: 30
+                    upColor: '#0FAF59'
+            - perform: action.my_action
+              data:
+                id: '{{id}}'
+                name: '{{name}}'
+                price: '{{price}}'
+                response: '{{response.body}}'
+        - contains: 'error'
+          code: '400'
+          triggers:
+            - perform: log
+              data:
+                debug: response.body
+                error: 'Error saving product'
+    - path: items/part/search
+      request:
+        headers:
+          Authorization: 'Bearer {{token}}'
+        body:  # vars will be filled on runtime, must be between ''
+          item: graph
+          settings:
+            duration: '{{duration}}' # vars will be filled on runtime, must be between ''
+            asset:
+              symbol: '{{asset}}'
+            isVisible: true
+            timePeriod: 30
+
+var_defaults:
+  session: '34'
+  is_demo: true
+constants:
+  asset_codes:
+    USDBTC: 1
