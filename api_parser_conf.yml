@@ -9,82 +9,93 @@ info:
     url: https://my.supplier.com
     email: support@my.supplier.com
 supplier_servers:
-  - server: https://api.my.supplier.com
-    description: Production server
-  - server: https://sandbox.api.my.supplier.com
-    description: Sandbox server
+  - id: prod
+    url: https://api.my.supplier.com
+    description: My Supplier production server
+  - id: sandbox
+    url: https://sandbox.api.my.supplier.com
+    description: My Supplier sandbox server
 tags:
   - name: items
     description: Supplier Endpoints to manage items
   - name: users
     description: Supplier Endpoints to manage users
+# All vars between brackets are given as args or from global vars and constants
 actions:
-  get_item_part: # this is action name
+  auth: # this is action name
+    tags:
+      - users
+    description: The actions needed to authenticate
+    performs:
+    - perform: http.post
+      data:
+        path: {{supplier_server}}/auth/login
+        body:
+          user: '{{user}}'
+          pass: '{{pass}}'
+      responses:
+        - is_success:
+            code: 200
+            contains: ok
+          triggers:
+            - perform: action.set_var.session_token=response.token
+            - perform: log.info('Successfully authenticated')
+        - is_error:
+            code: 400
+          triggers:
+            - perform: log.debug(response.body)
+            - perform: log.error('Error authenticating')
+  get_item_part: # this is action name.
     tags:
       - items
     description: The actions needed to get item part
-    supplier_paths:
-    - path: items/part/{id}
-      request:
-        headers:
-          Authorization: 'Bearer {{token}}'
-        body:  # vars will be filled on runtime, must be between ''
-          item: graph
-          settings:
-            duration: '{{duration}}' # vars will be filled on runtime, must be between ''
-            asset:
-              symbol: '{{asset}}'
-            isVisible: true
-            timePeriod: 30
-            upColor: '#0FAF59'
+    performs:
+    - perform: action.get_var.session_token
       responses:
-        - contains: 'ok'
-          code: '200'
+        - is_error:
+            has_value: false
           triggers:
-            - perform: log
-              data:
-                debug: response.body
-                success: 'Successfully saved product'
+            - perform: action.auth
+              responses:
+                - is_error:
+                    has_value: false
+                  triggers:
+                    - perform: action.retry
+                      data:
+                        trials: 3
+                        delay: 10
+    - perform: http.get
+      data:
+        headers:
+          Authorization: Bearer action.get_var.token
+        path: {{supplier_server}}/items/part/{{id_item}}/part/{{id_part}}
+      responses:
+        - is_success:
+            code: 200
+            contains: ok
+          triggers:
+            - perform: log.info('Successfully got item part')
             - perform: http.post
               data:
-                url: 'https://api.my.app.com/items/part/{{id}}'
+                url: https://api.my.app.com/items/part/{{id}}
+                headers:
+                  Authorization: Bearer env.my_app_api_token
                 body:
-                  item: graph
-                  settings:
-                    duration: '{{duration}}'
-                    asset:
-                      symbol: '{{asset}}'
-                    isVisible: true
-                    timePeriod: 30
-                    upColor: '#0FAF59'
-            - perform: action.my_action
-              data:
-                id: '{{id}}'
-                name: '{{name}}'
-                price: '{{price}}'
-                response: '{{response.body}}'
-        - contains: 'error'
-          code: '400'
+                  id: response.id
+                  name: response.name
+                  price: response.price
+                  description: response.description
+                  stock: response.stock
+                  image: response.img
+                  is_active: !response.is_discontinued
+        - is_error:
+            contains: error
+            code: 400
           triggers:
-            - perform: log
-              data:
-                debug: response.body
-                error: 'Error saving product'
-    - path: items/part/search
-      request:
-        headers:
-          Authorization: 'Bearer {{token}}'
-        body:  # vars will be filled on runtime, must be between ''
-          item: graph
-          settings:
-            duration: '{{duration}}' # vars will be filled on runtime, must be between ''
-            asset:
-              symbol: '{{asset}}'
-            isVisible: true
-            timePeriod: 30
+            - perform: log.error('Error getting item part' response.body)
 
-var_defaults:
-  session: '34'
+vars:
+  session: 34
   is_demo: true
 constants:
   asset_codes:
