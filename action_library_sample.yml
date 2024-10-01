@@ -1,0 +1,35 @@
+action_libraries: # Example of action library
+  authentication:
+    auth:
+      parameters:
+        user: '{{user}}'
+        pass: '{{pass}}'
+      performs:
+        - perform: http.post
+          data:
+            path: {{supplier_server}}/auth/login
+            body:
+              user: action.get_var.user
+              pass: action.get_var.pass
+      responses:
+        - is_success:
+            code: 200
+            contains: ok
+          triggers:
+            - perform: action.set_var.session_token=response.token
+            - perform: log.info('Successfully authenticated')
+        - is_error:
+            code: 400
+          triggers:
+            - perform: log.debug(response.body)
+            - perform: log.error('Error authenticating')
+
+environments:
+  development:
+    vars:
+      session: 123
+      is_demo: true
+  production:
+    vars:
+      session: 456
+      is_demo: false

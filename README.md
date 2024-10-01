@@ -1,11 +1,14 @@
-- Adhere to SOLID, DRY, KISS, and Dependency Injection principles in your code design.
-- Don't document the code, just write it (maybe small parts of it).
-- Manage errors with exceptions, with clear error messages.
-- Use Clean Architecture principles but:
-  - Try always to create only class that keeps the goodies of Clean Architecture.
-  - To keep concerns separated, create a new class and refactor exisiting ones if really needed.
-- Use python 3.12 goodies.
-- Prefer dictionaries (with lambda functions) over if-elif statements for readability.
-- Use snoop library for debugging.
-- Add tests for all new code.
-- Always give comments regarding enhancements, best practices, code design and pythonic stuff after modifying or adding code.
+## API Integration Convention
+ 
+ This project utilizes a YAML-based configuration file to define the logic for integrating with external APIs. 
+ The configuration file specifies actions, responses, and triggers, allowing for a flexible and reusable approach to API integration.
+ This convention promotes consistency and maintainability across different API integrations.
+
+### Key Features
+
+**Schema Validation:**  A schema definition (e.g., using JSON Schema) is used to validate the YAML configuration files, ensuring they adhere to the expected structure and data types.
+**Action Parameters:** Action parameters are separated from the action definition for better readability and maintainability.
+**Sophisticated Response Handling:**  More advanced response validation mechanisms, such as regular expressions or JSONPath expressions, are used to handle complex responses.   
+**Enhanced Error Handling:** Options for retrying actions, sending notifications, or triggering other actions based on specific error conditions are provided.
+**Action Libraries:** Common actions are encapsulated in action libraries, promoting code reusability and reducing redundancy.
+**Environment-Specific Variables:** A mechanism for defining environment-specific variables and constants is provided to support different deployment environments.
