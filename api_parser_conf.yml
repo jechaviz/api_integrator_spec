@@ -62,7 +62,7 @@ actions:
                   triggers:
                     - perform: action.retry
                       data:
-                        trials: 3
+                        trials: {{retry_trials}}
                         delay: 10
     - perform: http.get
       data:
@@ -95,8 +95,7 @@ actions:
             - perform: log.error('Error getting item part' response.body)
 
 vars:
-  session: 34
-  is_demo: true
+  user: user
+  pass: pass
 constants:
-  asset_codes:
-    USDBTC: 1
+  retry_trials: 3
