@@ -5,6 +5,21 @@ import yaml
 from chevron import render
 
 
+class YamlObject:
+    def __init__(self, data):
+        for key, value in data.items():
+            if isinstance(value, dict):
+                setattr(self, key, YamlObject(value))
+            else:
+                setattr(self, key, value)
+
+    def __getattr__(self, name):
+        return None
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+
 class ApiParserNew:
     def __init__(self, config_path: str):
         self.config_path = config_path
@@ -12,34 +27,33 @@ class ApiParserNew:
         self.api = self._load_config()
         self.action_templates = self._load_action_templates()
         self.class_template = ''
-        self.var_defaults = self.api.get('vars', {})
-        self.constants = self.api.get('constants', {})
+        self.var_defaults = self.api.vars
+        self.constants = self.api.constants
 
     def _load_config(self):
         with open(self.config_path) as f:
-            return yaml.safe_load(f)
+            data = yaml.safe_load(f)
+            return YamlObject(data)
 
     def _load_action_templates(self):
         request_templates = {}
-        for section, sections in self.api.items():
-            if section != 'actions': continue
-            for action_name, action_items in sections.items():
-                requests = []
-                if not action_items: continue
-                for action_item in action_items['performs']:
-                    endpoint = action_item.get('data', {}).get('path', '')
-                    payload = action_item.get('data', {}).get('body', {})
-                    response_ok_contains = ''
-                    response_error_contains = ''
-                    try:
-                        response_ok_contains = action_item['responses'][0]['is_success']['contains']
-                        response_error_contains = action_item['responses'][0]['is_error']['contains']
-                    except:
-                        pass
-                    requests.append({'endpoint': endpoint, 'payload': payload,
-                                     'response_ok_contains': response_ok_contains,
-                                     'response_error_contains': response_error_contains})
-                request_templates[f'{action_name}'] = requests
+        for action_name, action_items in self.api.actions.items():
+            requests = []
+            if not action_items: continue
+            for action_item in action_items.performs:
+                endpoint = action_item.data.path
+                payload = action_item.data.body
+                response_ok_contains = ''
+                response_error_contains = ''
+                try:
+                    response_ok_contains = action_item.responses[0].is_success.contains
+                    response_error_contains = action_item.responses[0].is_error.contains
+                except:
+                    pass
+                requests.append({'endpoint': endpoint, 'payload': payload,
+                                 'response_ok_contains': response_ok_contains,
+                                 'response_error_contains': response_error_contains})
+            request_templates[f'{action_name}'] = requests
         return request_templates
 
     def action_requests(self, action_id, values):
@@ -80,10 +94,10 @@ class ApiParserNew:
                 except Exception as e:
                     print(e)
         """
-        for action_name, action_items in self.api['actions'].items():
+        for action_name, action_items in self.api.actions.items():
             keys = []
-            for action_item in action_items['performs']:
-                payload = action_item.get('data', {}).get('body', {})
+            for action_item in action_items.performs:
+                payload = action_item.data.body
                 keys.extend(self._get_template_keys(payload))
             arguments = ", ".join(keys)
             params = ", ".join([f"'{key}'={key}" for key in keys])
