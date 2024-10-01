@@ -30,17 +30,16 @@ class ApiParser:
       for action_name, action_items in sections.items():
         requests = []
         if not action_items: continue
-        for supplier_path in action_items['supplier_paths']:
-          endpoint = supplier_path['path']
-          payload = supplier_path.get('request', {}).get('body', {})
-          responses = supplier_path.get('responses', [])
+        for action_item in action_items:
+          endpoint = action_item.get('endpoint', '')
+          payload = action_item.get('payload', {})
           response_ok_contains = ''
           response_error_contains = ''
-          for response in responses:
-            if response.get('code') == '200':
-              response_ok_contains = response.get('contains', '')
-            elif response.get('code') == '400':
-              response_error_contains = response.get('contains', '')
+          try:
+            response_ok_contains = action_item['is_success']['response_contains']
+            response_error_contains = action_item['is_error']['response_contains']
+          except:
+            pass
           requests.append({'endpoint': endpoint, 'payload': payload,
                            'response_ok_contains': response_ok_contains,
                            'response_error_contains': response_error_contains})
@@ -91,10 +90,6 @@ class ApiParser:
       keys = []
       for action_item in action_items:
         payload = action_item.get('payload', {})
-        keys.extend(self._get_template_keys(payload))
-      keys = []
-      for supplier_path in action_items['supplier_paths']:
-        payload = supplier_path.get('request', {}).get('body', {})
         keys.extend(self._get_template_keys(payload))
       arguments = ", ".join(keys)
       params = ", ".join([f"'{key}'={key}" for key in keys])
