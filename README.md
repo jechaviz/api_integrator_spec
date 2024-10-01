@@ -41,8 +41,26 @@
       - code: true if the response code is the specified value.
       - has_key: true if the response has the specified key.
       - has_keys: true if the response has all the specified keys.
+      - is_empty: true if the response is empty.
+      - is_not_empty: true if the response is not empty.
+      - is_null: true if the response is null.
+      - is_not_null: true if the response is not null.
+      - is_type: true if the response is of the specified type.
+      - is_not_type: true if the response is not of the specified type.
+      - length: true if the response length is the specified value.
+      - length_gt: true if the response length is greater than the specified value.
+      - length_lt: true if the response length is less than the specified value.
+      - length_gte: true if the response length is greater than or equal to the specified value.
+      - length_lte: true if the response length is less than or equal to the specified value.
     - **is_error**: When is_success is not true, conditions for handling different errors. Same keys as is_success.
-    
+
+### `response` object
+- The response object is used to retrieve information about the response.
+- It can be called in any part after a response is received.
+- The general structure is:
+  - response.{property}...
+  - where property follows the response structure.
+
 
 ### `perform commands`
 - They are basic commands that can be performed by actions.
@@ -65,9 +83,10 @@
     - supported levels supported must be: debug, info, warning, error, critical.
   - action.{name} is used to call an action defined in the actions section, letting be chained.
   - action.{command} is used to call a command defined in the perform commands section.
-    - action.var.{var_name} is used to get a variable from the vars section.
-    - action.var.{var_name}={value} is used to set a variable in the vars section.
-    - action.retry(trials, delay) is used to retry an action.
+    - vars.get.{var_name} is used to get a variable from the vars section.
+    - vars.set.{var_name}={value} is used to set a variable in the vars section.
+  - this represents the current action.
+    - retry(trials, delay) is used to retry an action.
       - trials is the number of times to retry the action.
       - delay is the delay between retries in milliseconds.
     - more commands can be added as needed.
@@ -122,7 +141,7 @@
              code: 200
              contains: ok
            performs:
-             - perform: action.var.session_token=response.token
+             - perform: vars.set.session_token=response.token
              - perform: log.info('Successfully authenticated')
          - is_error:
              code: 400
@@ -134,17 +153,17 @@
        - items
      description: The actions needed to get item part
      performs:
-     - perform: action.var.session_token
+     - perform: vars.get.session_token
        responses:
          - is_error:
-             has_value: false
+             is_empty: true
            performs:
              - perform: action.auth
                responses:
                  - is_error:
                      has_value: false
                    triggers:
-                     - perform: action.retry
+                     - perform: this.retry
                        data:
                          trials: 3
                          delay: 10
