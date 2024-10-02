@@ -30,12 +30,7 @@ We use Windows 10 (for command line)
           # Test code here
           pass
   ```
-- Use descriptive class names that start with "Test", e.g., `class TestUserAuthentication:`.
-- Organize related tests into methods within the class.
-- Use the `setup` method with `@pytest.fixture(autouse=True)` to prepare the test environment before each test method.
 - If teardown is needed, use `yield` in the setup method and place teardown code after it.
-- Test method names should be descriptive and start with "test_".
-- Group related tests into separate test classes when appropriate.
 - Use pytest fixtures for reusable test data or objects.
 - Prefer `assert` statements over unittest-style assertions.
-  
+- Always create files mimicking the structure of the files you are testing in the `tests` directory.
