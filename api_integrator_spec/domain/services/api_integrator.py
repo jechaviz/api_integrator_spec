@@ -6,7 +6,7 @@ import requests
 import logging
 from pathlib import Path
 from typing import Dict, Any, List, Union
-from api_integrator_spec.domain.value_objects.yaml_object import YmlObj
+from api_integrator_spec.domain.value_objects.yml_obj import YmlObj
 from api_integrator_spec.domain.value_objects.api_response import ApiResponse
 
 class ApiIntegrator:
@@ -37,9 +37,9 @@ class ApiIntegrator:
             self.execute_perform(perform, merged_params)
 
     @snoop
-    def execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
+    def execute_perform(self, perform: YmlObj, params: Dict[str, Any]):
         command = perform.perform
-        data = perform._data if perform.has('data') else YamlObject({})
+        data = perform._data if perform.has('data') else YmlObj({})
 
         logging.debug(f"Executing command: {command}")
         logging.debug(f"Command data: {data}")
@@ -60,13 +60,13 @@ class ApiIntegrator:
             self._handle_responses(perform.responses, params)
 
     @snoop
-    def _handle_http(self, command: str, data: YamlObject, params: Dict[str, Any]):
+    def _handle_http(self, command: str, data: YmlObj, params: Dict[str, Any]):
         method = command.split('.')[1].upper()
         endpoint = data.get('path', '')
         url = self.render_template(endpoint, params)
         headers = {k: self.render_template(v, params) for k, v in data.get('headers', {}).items()}
         body_data = data.get('body', {})
-        body = self.render_template(json.dumps(body_data.to_dict() if isinstance(body_data, YamlObject) else body_data), params)
+        body = self.render_template(json.dumps(body_data.to_dict() if isinstance(body_data, YmlObj) else body_data), params)
         query = {k: self.render_template(v, params) for k, v in data.get('query', {}).items()}
 
         logging.debug(f"HTTP Request: {method} {url}")
@@ -80,16 +80,16 @@ class ApiIntegrator:
         logging.debug(f"Response status code: {response.status_code}")
         logging.debug(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
 
-    def _handle_log(self, command: str, data: YamlObject, params: Dict[str, Any]):
+    def _handle_log(self, command: str, data: YmlObj, params: Dict[str, Any]):
         level = command.split('.')[1]
         message = self.render_template(data.to_dict(), params)
         getattr(logging, level)(message)
 
-    def _handle_action(self, command: str, data: YamlObject, params: Dict[str, Any]):
+    def _handle_action(self, command: str, data: YmlObj, params: Dict[str, Any]):
         action_name = command.split('.')[1]
         self.perform_action(action_name, params)
 
-    def _handle_vars(self, command: str, data: YamlObject, params: Dict[str, Any]):
+    def _handle_vars(self, command: str, data: YmlObj, params: Dict[str, Any]):
         operation = command.split('.')[1]
         if operation == 'set':
             for key, value in data.items():
@@ -100,7 +100,7 @@ class ApiIntegrator:
         else:
             raise ValueError(f"Unknown vars operation: {operation}")
 
-    def _handle_responses(self, responses: List[YamlObject], params: Dict[str, Any]):
+    def _handle_responses(self, responses: List[YmlObj], params: Dict[str, Any]):
         response_handlers = {
             'is_success': lambda r, p: self._check_response_conditions(r.is_success, p),
             'is_error': lambda r, p: r.has('is_error') and self._check_response_conditions(r.is_error, p)
@@ -112,7 +112,7 @@ class ApiIntegrator:
                     self._execute_performs(response.performs, params)
                     return
 
-    def _check_response_conditions(self, conditions: YamlObject, params: Dict[str, Any]) -> bool:
+    def _check_response_conditions(self, conditions: YmlObj, params: Dict[str, Any]) -> bool:
         response = params['response']
         condition_checks = {
             'code': lambda v: response.status_code == v,
@@ -132,7 +132,7 @@ class ApiIntegrator:
         }
         return all(condition_checks.get(condition, lambda v: False)(value) for condition, value in conditions.items())
 
-    def _execute_performs(self, performs: List[YamlObject], params: Dict[str, Any]):
+    def _execute_performs(self, performs: List[YmlObj], params: Dict[str, Any]):
         for perform in performs:
             self.execute_perform(perform, params)
 
