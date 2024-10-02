@@ -22,25 +22,29 @@ class ApiParserNew:
             return YamlObject(data)
 
     def _load_action_templates(self):
-        request_templates = {}
-        for action_name, action_items in self.api.actions.items():
+        action_templates = {}
+        for action_name, action_data in self.api.actions:
             requests = []
-            if not action_items: continue
-            for action_item in action_items.performs:
-                endpoint = action_item.data.path
-                payload = action_item.data.body
-                response_ok_contains = ''
-                response_error_contains = ''
-                try:
-                    response_ok_contains = action_item.responses[0].is_success.contains
-                    response_error_contains = action_item.responses[0].is_error.contains
-                except:
-                    pass
-                requests.append({'endpoint': endpoint, 'payload': payload,
-                                 'response_ok_contains': response_ok_contains,
-                                 'response_error_contains': response_error_contains})
-            request_templates[f'{action_name}'] = requests
-        return request_templates
+            if not action_data.performs:
+                continue
+            for perform in action_data.performs:
+                request = {
+                    'perform': perform.perform,
+                    'data': {},
+                    'responses': {}
+                }
+                
+                if hasattr(perform, 'data'):
+                    request['data'] = perform.data.to_dict()
+                
+                if hasattr(perform, 'responses'):
+                    for response_type, response_data in perform.responses:
+                        request['responses'][response_type] = response_data.to_dict()
+                
+                requests.append(request)
+            
+            action_templates[action_name] = requests
+        return action_templates
 
     def action_requests(self, action_id, values):
         try:
