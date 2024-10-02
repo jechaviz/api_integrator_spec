@@ -45,6 +45,12 @@ class YamlObject:
         for k in keys:
             if isinstance(value, dict) and k in value:
                 value = value[k]
+            elif isinstance(value, list) and k.isdigit():
+                index = int(k)
+                if 0 <= index < len(value):
+                    value = value[index]
+                else:
+                    return False
             else:
                 return False
         return True
