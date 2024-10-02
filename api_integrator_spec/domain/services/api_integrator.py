@@ -29,7 +29,7 @@ class ApiIntegrator:
         if not action:
             raise ValueError(f"Action '{action_name}' not found in config")
 
-        merged_params = {**self.vars.to_dict(), **(params or {})}
+        merged_params = {**self.vars.to_dict(), **self.constants.to_dict(), **(params or {})}
         for perform in action.performs:
             self.execute_perform(perform, merged_params)
 
@@ -93,7 +93,7 @@ class ApiIntegrator:
                     self._execute_performs(response.performs, params)
                     return
 
-    def check_response_conditions(self, conditions: YamlObject, params: Dict[str, Any]) -> bool:
+    def _check_response_conditions(self, conditions: YamlObject, params: Dict[str, Any]) -> bool:
         response = params['response']
         condition_checks = {
             'code': lambda v: response.status_code == v,
@@ -134,7 +134,7 @@ def main():
     integrator = ApiIntegrator(config_path)
     
     # Example usage
-    integrator.perform_action('auth', {'user': 'testuser', 'pass': 'testpass'})
+    integrator.perform_action('auth')
     integrator.perform_action('get_item_part', {'id_item': '123', 'id_part': '456'})
 
 if __name__ == '__main__':
