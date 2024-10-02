@@ -62,7 +62,8 @@ class ApiIntegrator:
     @snoop
     def _handle_http(self, command: str, data: YamlObject, params: Dict[str, Any]):
         method = command.split('.')[1].upper()
-        url = self.render_template(data.get('path', ''), params)
+        endpoint = data.get('path', '')
+        url = self.render_template(endpoint, params)
         headers = {k: self.render_template(v, params) for k, v in data.get('headers', YamlObject({})).items()}
         body = self.render_template(json.dumps(data.get('body', YamlObject({})).to_dict()), params)
         query = {k: self.render_template(v, params) for k, v in data.get('query', YamlObject({})).items()}
