@@ -57,7 +57,7 @@ class TestYamlObject:
         assert perform.type == "http.post"
         assert perform.data.path == "{{supplier_server.url}}/auth/login"
         assert perform.data.body.user == "{{user}}"
-        assert perform.data.body.pass == "{{pass}}"
+        assert perform.data.body['pass'] == "{{pass}}"
 
     @snoop
     def test_to_dict_method(self):
