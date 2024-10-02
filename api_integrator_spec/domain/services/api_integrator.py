@@ -11,7 +11,7 @@ from api_integrator_spec.domain.value_objects.api_response import ApiResponse
 
 class ApiIntegrator:
     def __init__(self, config_path: str):
-        self.config_path = Path.cwd().parent.parent / config_path
+        self.config_path = Path(__file__).resolve().parent.parent.parent / config_path
         self.config = self._load_config()
         self.vars = self.config.vars if self.config.has('vars') else YmlObj({})
         self.constants = self.config.constants if self.config.has('constants') else YmlObj({})
@@ -64,7 +64,6 @@ class ApiIntegrator:
         if perform_info.has('responses'):
             self._handle_responses(perform_info.responses, params)
 
-    @snoop
     def _handle_http(self, command: str, data: YmlObj, params: Dict[str, Any]):
         method = command.split('.')[1].upper()
         endpoint = data.get('path', '')
