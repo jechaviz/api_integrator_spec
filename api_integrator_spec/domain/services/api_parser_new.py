@@ -9,8 +9,8 @@ from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
 
 class ApiParserNew:
     def __init__(self, config_path: Path):
-        self.config_path = config_path.resolve()
-        self.api_name = config_path.stem
+        self.config_path = self._create_path(config_path)
+        self.api_name = self.config_path.stem
         self.api = self._load_config()
         self.action_templates = self._load_action_templates()
         self.class_template = ''
@@ -131,3 +131,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    def _create_path(self, relative_path: Path) -> Path:
+        return relative_path.resolve()
