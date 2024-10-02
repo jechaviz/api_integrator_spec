@@ -105,6 +105,10 @@ class ApiParserNew:
                     keys.extend(self._get_template_keys(value))
         return keys
 
+    @staticmethod
+    def _create_path(relative_path: Path):
+        return relative_path.resolve()
+
 
 def print_action(api, action_id, values):
     print(action_id)
@@ -131,5 +135,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    def _create_path(self, relative_path: Path) -> Path:
-        return relative_path.resolve()
