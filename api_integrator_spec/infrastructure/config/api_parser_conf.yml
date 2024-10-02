@@ -39,14 +39,14 @@ actions:
             performs:
               - perform: vars.set
                 data:
-                  session_token: '{{response.token}}'
+                  session_token: response.token
               - perform: log.info
                 data: 'Successfully authenticated'
           - is_error:
               code: 400
             performs:
               - perform: log.debug
-                data: '{{response.body}}'
+                data: response.body
               - perform: log.error
                 data: 'Error authenticating'
   get_item_part:
@@ -88,27 +88,25 @@ actions:
                   headers:
                     Authorization: 'Bearer {{my_app_api_token}}'
                   body:
-                    id: '{{response.id}}'
-                    name: '{{response.name}}'
-                    price: '{{response.price}}'
-                    description: '{{response.description}}'
-                    stock: '{{response.stock}}'
-                    image: '{{response.img}}'
-                    is_active: '{{not response.is_discontinued}}'
+                    id: response.id
+                    name: response.name
+                    price: response.price
+                    description: response.description
+                    stock: response.stock
+                    image: response.img
+                    is_active: response.is_active
           - is_error:
               contains: error
               code: 400
             performs:
               - perform: log.error
-                data: 'Error getting item part: {{response.body}}'
+                data: 'Error getting item part: response.body'
 
 vars:
   user: user
   pass: pass
-  supplier_server: https://api.my.supplier.com
+  supplier_server: sandbox
   my_app_api_token: your_app_token_here
 
 constants:
   retry_trials: 3
-  asset_codes:
-    USDBTC: 1
