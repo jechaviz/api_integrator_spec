@@ -7,7 +7,8 @@ from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
 
 class ApiParserNew:
     def __init__(self, config_path: str):
-        self.config_path = config_path
+        import os
+        self.config_path = os.path.abspath(config_path)
         self.api_name = config_path.replace('.yml', '')
         self.api = self._load_config()
         self.action_templates = self._load_action_templates()
@@ -120,7 +121,9 @@ def main():
         'direction': 2,
         'is_demo': 1
     }
-    api = ApiParserNew('infrastructure/config/api_parser_conf.yml')
+    import os
+    config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'infrastructure', 'config', 'api_parser_conf.yml')
+    api = ApiParserNew(config_path)
     class_code = api.generate_class()
     print(class_code)
 
