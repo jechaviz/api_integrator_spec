@@ -8,7 +8,7 @@ from pathlib import Path
 from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
 
 class ApiParserNew:
-    def __init__(self, config_path: Path):
+    def __init__(self, config_path: str):
         self.config_path = self._create_path(config_path)
         self.api_name = self.config_path.stem
         self.api = self._load_config()
@@ -106,8 +106,8 @@ class ApiParserNew:
         return keys
 
     @staticmethod
-    def _create_path(relative_path: Path):
-        return relative_path.resolve()
+    def _create_path(relative_path: str) -> Path:
+        return Path(relative_path).resolve()
 
 
 def print_action(api, action_id, values):
