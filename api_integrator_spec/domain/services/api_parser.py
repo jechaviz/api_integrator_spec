@@ -15,7 +15,6 @@ class ApiParser:
         self.class_template = ''
         self.var_defaults = self.api.vars
         self.constants = self.api.constants
-        self.action_service = ActionService(self)
 
     def _load_config(self):
         with open(self.config_path) as f:
@@ -44,7 +43,22 @@ class ApiParser:
         return request_templates
 
     def action_requests(self, action_id, values):
-        return self.action_service.perform_action(action_id, values)
+        try:
+            action_template = self.action_templates[action_id]
+        except KeyError:
+            raise KeyError(f"Action '{action_id}' not found in config")
+        merged_values = {**self.var_defaults, **values}
+        action_str = render(str(action_template), merged_values)
+        try:
+            action = ast.literal_eval(action_str)
+        except (SyntaxError, ValueError) as e:
+            raise ValueError(f"Error parsing action '{action_id}': {e}")
+        requests = []
+        for item in action:
+            payload = re.sub(r'"(\d+)"', r'\1', json.dumps(item['payload']))
+            request = item['endpoint'].format(payload=payload)
+            requests.append(request)
+        return requests
 
     def generate_class(self):
         class_code = f'class {self.api_name.title().replace("_", "")}:'
