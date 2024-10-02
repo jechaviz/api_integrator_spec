@@ -147,6 +147,23 @@ class ApiIntegrator:
         return template
 
     def get_value(self, key: str, params: Dict[str, Any]) -> Any:
+        if key == 'supplier_server.url':
+            supplier_server = params.get('supplier_server') or self.vars.get('supplier_server') or self.constants.get('supplier_server')
+            if isinstance(supplier_server, dict):
+                if 'url' in supplier_server:
+                    return supplier_server['url']
+                elif 'id' in supplier_server:
+                    server_id = supplier_server['id']
+                    for server in self.config.supplier_servers:
+                        if server.id == server_id:
+                            return server.url
+            elif isinstance(supplier_server, str):
+                for server in self.config.supplier_servers:
+                    if server.id == supplier_server:
+                        return server.url
+            logging.warning(f"Could not find supplier_server.url for {supplier_server}")
+            return f"{{{{ supplier_server.url }}}}"
+        
         value = params.get(key) or self.vars.get(key) or self.constants.get(key) or f"{{{{ {key} }}}}"
         logging.debug(f"Getting value for key '{key}': {value}")
         return value
