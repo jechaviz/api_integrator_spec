@@ -2,7 +2,6 @@ import pytest
 
 from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
 
-
 @pytest.fixture
 def yaml_object_data():
     return {
