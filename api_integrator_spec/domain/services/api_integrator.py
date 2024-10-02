@@ -45,16 +45,23 @@ class ApiIntegrator:
         logging.debug(f"Command data: {data}")
         logging.debug(f"Params: {params}")
 
-        command_parts = command.split('.')
+        if isinstance(command, YmlObj):
+            command_str = command.type
+        elif isinstance(command, str):
+            command_str = command
+        else:
+            raise ValueError(f"Invalid command type: {type(command)}")
+
+        command_parts = command_str.split('.')
         if len(command_parts) > 1:
             handler_name = f'_handle_{command_parts[0]}'
             handler = getattr(self, handler_name, None)
             if handler:
-                handler(command, data, params)
+                handler(command_str, data, params)
             else:
-                raise ValueError(f"Unknown command: {command}")
+                raise ValueError(f"Unknown command: {command_str}")
         else:
-            raise ValueError(f"Invalid command format: {command}")
+            raise ValueError(f"Invalid command format: {command_str}")
 
         if perform.has('responses'):
             self._handle_responses(perform.responses, params)
