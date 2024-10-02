@@ -105,7 +105,8 @@ actions:
 vars:
   user: user
   pass: pass
-  supplier_server: sandbox
+  supplier_server:
+    id: sandbox
   my_app_api_token: your_app_token_here
 
 constants:
