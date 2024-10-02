@@ -36,7 +36,7 @@ class TestYamlObject:
     @snoop
     def test_deep_nested_access(self):
         assert self.yaml_config.actions.auth.performs[0].perform.type == "http.post"
-        assert self.yaml_config.actions.auth.performs[0].perform.data.path == "{{supplier_server.url}}/auth/login"
+        assert self.yaml_config.actions.auth.performs[0].perform._data.path == "{{supplier_server.url}}/auth/login"
 
     @snoop
     def test_get_method(self):
@@ -55,9 +55,9 @@ class TestYamlObject:
         perform = self.yaml_config.actions.auth.performs[0].perform
         assert isinstance(perform, YamlObject)
         assert perform.type == "http.post"
-        assert perform.data.path == "{{supplier_server.url}}/auth/login"
-        assert perform.data.body.user == "{{user}}"
-        assert perform.data.body['pass'] == "{{pass}}"
+        assert perform._data.path == "{{supplier_server.url}}/auth/login"
+        assert perform._data.body.user == "{{user}}"
+        assert perform._data.body['pass'] == "{{pass}}"
 
     @snoop
     def test_to_dict_method(self):

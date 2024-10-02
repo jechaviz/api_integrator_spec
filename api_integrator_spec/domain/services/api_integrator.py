@@ -39,7 +39,7 @@ class ApiIntegrator:
     @snoop
     def execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
         command = perform.perform
-        data = perform.data if perform.has('data') else YamlObject({})
+        data = perform._data if perform.has('data') else YamlObject({})
 
         logging.debug(f"Executing command: {command}")
         logging.debug(f"Command data: {data}")

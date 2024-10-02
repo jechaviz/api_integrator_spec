@@ -34,7 +34,7 @@ class ApiParserNew:
         for perform in action_data.performs:
             request = {
                 'perform': perform.perform,
-                'data': perform.data.to_dict() if hasattr(perform, 'data') else {},
+                'data': perform._data.to_dict() if hasattr(perform, 'data') else {},
                 'responses': {}
             }
 
@@ -75,7 +75,7 @@ class ApiParserNew:
         for action_name, action_items in self.api.actions.items():
             keys = []
             for action_item in action_items.performs:
-                payload = action_item.data.body
+                payload = action_item._data.body
                 keys.extend(self._get_template_keys(payload))
             arguments = ", ".join(keys)
             params = ", ".join([f"'{key}'={key}" for key in keys])
