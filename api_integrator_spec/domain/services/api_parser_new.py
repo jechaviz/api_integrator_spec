@@ -11,7 +11,6 @@ class ApiParserNew:
         self.config_path = self._create_path(config_path)
         self.api_name = self.config_path.stem
         self.api = self._load_config()
-        self.action_templates = self._load_action_templates()
         self.class_template = ''
         self.var_defaults = self.api.vars
         self.constants = self.api.constants
@@ -21,48 +20,36 @@ class ApiParserNew:
             data = yaml.safe_load(f)
             return YamlObject(data)
 
-    def _load_action_templates(self):
-        action_templates = {}
-        for action_name, action_data in self.api.actions:
-            requests = []
-            if not action_data.performs:
-                continue
-            for perform in action_data.performs:
-                request = {
-                    'perform': perform.perform,
-                    'data': {},
-                    'responses': {}
-                }
-                
-                if hasattr(perform, 'data'):
-                    request['data'] = perform.data.to_dict()
-                
-                if hasattr(perform, 'responses'):
-                    for response_type, response_data in perform.responses:
-                        request['responses'][response_type] = response_data.to_dict()
-                
-                requests.append(request)
-            
-            action_templates[action_name] = requests
-        return action_templates
-
     def action_requests(self, action_id, values):
         try:
-            action_template = self.action_templates[action_id]
-        except KeyError:
+            action_data = self.api.actions.get(action_id)
+            if not action_data:
+                raise KeyError(f"Action '{action_id}' not found in config")
+        except AttributeError:
             raise KeyError(f"Action '{action_id}' not found in config")
-        merged_values = {**self.var_defaults, **values}
-        action_str = render(str(action_template), merged_values)
-        try:
-            print(f"Rendered template for action {action_id}: {action_str}")
-            action = ast.literal_eval(action_str)
-        except (SyntaxError, ValueError) as e:
-            raise ValueError(f"Error parsing action '{action_id}': {e}")
+
+        merged_values = {**self.var_defaults.to_dict(), **values}
         requests = []
-        for item in action:
-            payload = re.sub(r'"(\d+)"', r'\1', json.dumps(item['payload']))
-            request = item['endpoint'].format(payload=payload)
-            requests.append(request)
+
+        for perform in action_data.performs:
+            request = {
+                'perform': perform.perform,
+                'data': perform.data.to_dict() if hasattr(perform, 'data') else {},
+                'responses': {}
+            }
+
+            if hasattr(perform, 'responses'):
+                for response_type, response_data in perform.responses:
+                    request['responses'][response_type] = response_data.to_dict()
+
+            request_str = json.dumps(request)
+            rendered_request = render(request_str, merged_values)
+            try:
+                parsed_request = json.loads(rendered_request)
+                requests.append(parsed_request)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Error parsing request for action '{action_id}': {e}")
+
         return requests
 
     def generate_class(self):
