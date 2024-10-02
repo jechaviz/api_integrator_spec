@@ -1,4 +1,6 @@
 import re
+from pathlib import Path
+
 import yaml
 from chevron import render
 from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
@@ -6,8 +8,8 @@ from api_integrator_spec.application.services.action_service import ActionServic
 
 class ApiParser:
     def __init__(self, config_path: str):
-        self.config_path = config_path
-        self.api_name = config_path.replace('.yml', '')
+        self.config_path = self._create_path(config_path)
+        self.api_name = self.config_path.stem
         self.api = self._load_config()
         self.action_templates = self._load_action_templates()
         self.class_template = ''
@@ -88,4 +90,32 @@ class ApiParser:
                     keys.extend(self._get_template_keys(value))
         return keys
 
+    @staticmethod
+    def _create_path(relative_path: str) -> Path:
+        return Path.cwd().parent.parent / relative_path
+
+
+def print_action(api, action_id, values):
+  # for testing purposes
+  print(action_id)
+  requests = api.action_requests(action_id, values)
+  for request in requests:
+    print(request)
+  print()
+
+def main():
+  values = {
+    'asset': 'usd',
+    'price': 5,
+    'duration': 1,
+    'direction': 2,
+    'is_demo': 1
+  }
+  api = ApiParser('infrastructure/config/old_conf.yml')
+  print_action(api, 'complex_action', values)
+  #class_code = api.generate_class()
+  #print(class_code)
+
+if __name__ == '__main__':
+  main()
 
