@@ -25,7 +25,6 @@ class ApiIntegrator:
     def _setup_logging(self):
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    @snoop
     def perform_action(self, action_name: str, params: Dict[str, Any] = None):
         action = self.config.actions.get(action_name)
         if not action:
@@ -36,10 +35,9 @@ class ApiIntegrator:
         for perform in action.performs:
             self.execute_perform(perform, merged_params)
 
-    @snoop
-    def execute_perform(self, perform: YmlObj, params: Dict[str, Any]):
-        command = perform.perform
-        data = perform._data if perform.has('data') else YmlObj({})
+    def execute_perform(self, perform_info: YmlObj, params: Dict[str, Any]):
+        command = perform_info.perform
+        data = perform_info.perform.data if perform_info.perform.has('data') else YmlObj({})
 
         logging.debug(f"Executing command: {command}")
         logging.debug(f"Command data: {data}")
@@ -63,8 +61,8 @@ class ApiIntegrator:
         else:
             raise ValueError(f"Invalid command format: {command_str}")
 
-        if perform.has('responses'):
-            self._handle_responses(perform.responses, params)
+        if perform_info.has('responses'):
+            self._handle_responses(perform_info.responses, params)
 
     @snoop
     def _handle_http(self, command: str, data: YmlObj, params: Dict[str, Any]):
@@ -143,7 +141,6 @@ class ApiIntegrator:
         for perform in performs:
             self.execute_perform(perform, params)
 
-    @snoop
     def render_template(self, template: Union[str, Dict, List, YmlObj], params: Dict[str, Any]) -> Any:
         if isinstance(template, str):
             result = re.sub(r'\{\{(.+?)\}\}', lambda m: str(self.get_value(m.group(1).strip(), params)), template)
