@@ -1,4 +1,4 @@
-class YamlObject:
+class YmlObj:
     def __init__(self, data):
         self._data = data
 
@@ -9,9 +9,9 @@ class YamlObject:
         if key in self._data:
             value = self._data[key]
             if isinstance(value, dict):
-                return YamlObject(value)
+                return YmlObj(value)
             elif isinstance(value, list):
-                return [YamlObject(item) if isinstance(item, dict) else item for item in value]
+                return [YmlObj(item) if isinstance(item, dict) else item for item in value]
             else:
                 return value
         else:
@@ -37,7 +37,7 @@ class YamlObject:
                     return default
             else:
                 return default
-        return YamlObject(value) if isinstance(value, dict) else value
+        return YmlObj(value) if isinstance(value, dict) else value
 
     def has(self, key):
         keys = key.split('.')
@@ -59,13 +59,19 @@ class YamlObject:
         return self._data.keys()
 
     def values(self):
-        return [YamlObject(value) if isinstance(value, dict) else value for value in self._data.values()]
+        return [YmlObj(value) if isinstance(value, dict) else value for value in self._data.values()]
 
     def items(self):
-        return [(key, YamlObject(value) if isinstance(value, dict) else value) for key, value in self._data.items()]
+        return [(key, YmlObj(value) if isinstance(value, dict) else value) for key, value in self._data.items()]
 
     def __len__(self):
         return len(self._data)
 
     def __contains__(self, key):
         return self.has(key)
+
+    def __str__(self):
+        return str(self._data)
+
+    def __repr__(self):
+        return f"YmlObj({self._data})"

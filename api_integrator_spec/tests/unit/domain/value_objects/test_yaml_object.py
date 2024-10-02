@@ -2,24 +2,24 @@ import pytest
 import yaml
 import snoop
 from pathlib import Path
-from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
+from api_integrator_spec.domain.value_objects.yaml_object import YmlObj
 
-class TestYamlObject:
+class TestYmlObj:
     @pytest.fixture(autouse=True)
     def setup(self):
         config_path = Path(__file__).parent.parent.parent.parent.parent / 'infrastructure' / 'config' / 'api_parser_conf.yml'
         with open(config_path, 'r') as f:
-            self.yaml_config = YamlObject(yaml.safe_load(f))
+            self.yaml_config = YmlObj(yaml.safe_load(f))
 
     @snoop
     def test_top_level_attributes(self):
         assert self.yaml_config.api_integrator == "0.0.1"
-        assert isinstance(self.yaml_config.info, YamlObject)
+        assert isinstance(self.yaml_config.info, YmlObj)
         assert isinstance(self.yaml_config.supplier_servers, list)
         assert isinstance(self.yaml_config.tags, list)
-        assert isinstance(self.yaml_config.actions, YamlObject)
-        assert isinstance(self.yaml_config.vars, YamlObject)
-        assert isinstance(self.yaml_config.constants, YamlObject)
+        assert isinstance(self.yaml_config.actions, YmlObj)
+        assert isinstance(self.yaml_config.vars, YmlObj)
+        assert isinstance(self.yaml_config.constants, YmlObj)
 
     @snoop
     def test_nested_attributes(self):
@@ -53,7 +53,7 @@ class TestYamlObject:
     @snoop
     def test_nested_perform_structure(self):
         perform = self.yaml_config.actions.auth.performs[0].perform
-        assert isinstance(perform, YamlObject)
+        assert isinstance(perform, YmlObj)
         assert perform.type == "http.post"
         assert perform._data.path == "{{supplier_server.url}}/auth/login"
         assert perform._data.body.user == "{{user}}"
@@ -77,4 +77,10 @@ class TestYamlObject:
     @snoop
     def test_bool(self):
         assert bool(self.yaml_config) is True
-        assert bool(YamlObject({})) is False
+        assert bool(YmlObj({})) is False
+
+    @snoop
+    def test_str_and_repr(self):
+        yml_obj = YmlObj({"key": "value"})
+        assert str(yml_obj) == "{'key': 'value'}"
+        assert repr(yml_obj) == "YmlObj({'key': 'value'})"

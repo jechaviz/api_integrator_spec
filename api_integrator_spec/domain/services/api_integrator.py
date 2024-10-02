@@ -6,21 +6,21 @@ import requests
 import logging
 from pathlib import Path
 from typing import Dict, Any, List, Union
-from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
+from api_integrator_spec.domain.value_objects.yaml_object import YmlObj
 from api_integrator_spec.domain.value_objects.api_response import ApiResponse
 
 class ApiIntegrator:
     def __init__(self, config_path: str):
         self.config_path = Path.cwd().parent.parent / config_path
         self.config = self._load_config()
-        self.vars = self.config.vars if self.config.has('vars') else YamlObject({})
-        self.constants = self.config.constants if self.config.has('constants') else YamlObject({})
+        self.vars = self.config.vars if self.config.has('vars') else YmlObj({})
+        self.constants = self.config.constants if self.config.has('constants') else YmlObj({})
         self.session = requests.Session()
         self._setup_logging()
 
-    def _load_config(self) -> YamlObject:
+    def _load_config(self) -> YmlObj:
         with open(self.config_path) as f:
-            return YamlObject(yaml.safe_load(f))
+            return YmlObj(yaml.safe_load(f))
 
     def _setup_logging(self):
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -137,13 +137,13 @@ class ApiIntegrator:
             self.execute_perform(perform, params)
 
     @snoop
-    def render_template(self, template: Union[str, Dict, List, YamlObject], params: Dict[str, Any]) -> Any:
+    def render_template(self, template: Union[str, Dict, List, YmlObj], params: Dict[str, Any]) -> Any:
         if isinstance(template, str):
             result = re.sub(r'\{\{(.+?)\}\}', lambda m: str(self.get_value(m.group(1).strip(), params)), template)
             logging.debug(f"Rendered template: {template} -> {result}")
             return result
-        elif isinstance(template, (dict, YamlObject)):
-            return {k: self.render_template(v, params) for k, v in (template.items() if isinstance(template, YamlObject) else template.items())}
+        elif isinstance(template, (dict, YmlObj)):
+            return {k: self.render_template(v, params) for k, v in (template.items() if isinstance(template, YmlObj) else template.items())}
         elif isinstance(template, list):
             return [self.render_template(item, params) for item in template]
         return template

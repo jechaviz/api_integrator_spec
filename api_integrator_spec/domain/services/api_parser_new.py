@@ -4,7 +4,7 @@ import json
 import yaml
 from chevron import render
 from pathlib import Path
-from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
+from api_integrator_spec.domain.value_objects.yaml_object import YmlObj
 
 class ApiParserNew:
     def __init__(self, config_path: str):
@@ -18,7 +18,7 @@ class ApiParserNew:
     def _load_config(self):
         with open(self.config_path) as f:
             data = yaml.safe_load(f)
-            return YamlObject(data)
+            return YmlObj(data)
 
     def action_requests(self, action_id, values):
         try:
