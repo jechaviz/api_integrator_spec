@@ -51,6 +51,7 @@ class ApiParserNew:
         merged_values = {**self.var_defaults, **values}
         action_str = render(str(action_template), merged_values)
         try:
+            print(f"Rendered template for action {action_id}: {action_str}")
             action = ast.literal_eval(action_str)
         except (SyntaxError, ValueError) as e:
             raise ValueError(f"Error parsing action '{action_id}': {e}")
