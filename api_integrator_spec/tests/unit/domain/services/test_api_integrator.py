@@ -22,7 +22,7 @@ class TestApiIntegrator:
 
     def test_vars_and_constants(self):
         assert self.integrator.vars.user == 'user'
-        assert self.integrator.vars.pass == 'pass'
+        assert self.integrator.vars.password == 'pass'
         assert self.integrator.vars.supplier_server.id == 'sandbox'
         assert self.integrator.vars.my_app_api_token == 'your_app_token_here'
         assert self.integrator.constants.retry_trials == 3
