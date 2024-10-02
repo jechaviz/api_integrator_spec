@@ -31,7 +31,7 @@ class ApiIntegrator:
 
         merged_params = {**self.vars, **(params or {})}
         for perform in action.performs:
-            self._execute_perform(perform, merged_params)
+            self.execute_perform(perform, merged_params)
 
     def execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
         command = perform.perform
