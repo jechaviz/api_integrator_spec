@@ -34,18 +34,20 @@ class ApiIntegrator:
 
     def _execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
         command = perform.perform
-        data = perform.data.to_dict() if hasattr(perform, 'data') else {}
+        data = perform.data if isinstance(perform.data, dict) else perform.data.to_dict() if hasattr(perform, 'data') else {}
 
-        if command.startswith('http.'):
-            self._handle_http_request(command, data, params)
-        elif command.startswith('log.'):
-            self._handle_log(command, data, params)
-        elif command.startswith('action.'):
-            self._handle_action(command, data, params)
-        elif command == 'vars.set':
-            self._handle_vars_set(data, params)
-        elif command == 'vars.get':
-            self._handle_vars_get(data, params)
+        command_handlers = {
+            'http.': self._handle_http_request,
+            'log.': self._handle_log,
+            'action.': self._handle_action,
+            'vars.set': self._handle_vars_set,
+            'vars.get': self._handle_vars_get
+        }
+
+        for prefix, handler in command_handlers.items():
+            if command.startswith(prefix):
+                handler(command, data, params)
+                break
         else:
             raise ValueError(f"Unknown command: {command}")
 
@@ -80,13 +82,16 @@ class ApiIntegrator:
             params[key] = self.vars.get(key)
 
     def _handle_responses(self, responses: List[YamlObject], params: Dict[str, Any]):
+        response_handlers = {
+            'is_success': lambda r, p: self._check_response_conditions(r.is_success, p),
+            'is_error': lambda r, p: hasattr(r, 'is_error') and self._check_response_conditions(r.is_error, p)
+        }
+
         for response in responses:
-            if self._check_response_conditions(response.is_success, params):
-                self._execute_performs(response.performs, params)
-                break
-            elif hasattr(response, 'is_error') and self._check_response_conditions(response.is_error, params):
-                self._execute_performs(response.performs, params)
-                break
+            for condition, check in response_handlers.items():
+                if check(response, params):
+                    self._execute_performs(response.performs, params)
+                    return
 
     def _check_response_conditions(self, conditions: YamlObject, params: Dict[str, Any]) -> bool:
         response = params['response']
