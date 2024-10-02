@@ -62,7 +62,7 @@ actions:
                   performs:
                   - perform: action.retry
                     data:
-                      trials: {{retry_trials}}
+                      trials: '{{retry_trials}}'
                       delay: 10
       - perform: http.get
         data:
