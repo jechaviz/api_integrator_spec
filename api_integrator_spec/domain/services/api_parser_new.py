@@ -120,7 +120,7 @@ def main():
         'direction': 2,
         'is_demo': 1
     }
-    api = ApiParserNew('api_parser_conf.yml')
+    api = ApiParserNew('infrastructure/config/api_parser_conf.yml')
     class_code = api.generate_class()
     print(class_code)
 

@@ -1,0 +1,101 @@
+# my_api_sample_config
+api_integrator: 0.0.1
+info:
+  title: Interaction Configuration with API from My Supplier to integrate with my app
+  version: 1.0.0
+  description: This is a sample configuration file for API integrator
+  contact:
+    name: Developer
+    url: https://my.supplier.com
+    email: support@my.supplier.com
+supplier_servers:
+  - id: prod
+    url: https://api.my.supplier.com
+    description: My Supplier production server
+  - id: sandbox
+    url: https://sandbox.api.my.supplier.com
+    description: My Supplier sandbox server
+tags:
+  - name: items
+    description: Supplier Endpoints to manage items
+  - name: users
+    description: Supplier Endpoints to manage users
+# All vars between brackets are given as args or from global vars and constants
+actions:
+  auth: # this is action name
+    tags:
+      - users
+    description: The actions needed to authenticate
+    performs:
+      - perform: http.post
+        data:
+          path: '{{supplier_server}}/auth/login'
+          body:
+            user: '{{user}}'
+            pass: '{{pass}}'
+        responses:
+          is_success:
+            code: 200
+            contains: ok
+            performs:
+            - perform: action.set_var.session_token=response.token
+            - perform: log.info('Successfully authenticated')
+          is_error:
+            code: 400
+            performs:
+            - perform: log.debug(response.body)
+            - perform: log.error('Error authenticating')
+  get_item_part: # this is action name.
+    tags:
+      - items
+    description: The actions needed to get item part
+    performs:
+      - perform: action.get_var.session_token
+        responses:
+        - is_error:
+            has_value: false
+            performs:
+            - perform: action.auth
+              responses:
+              - is_error:
+                  has_value: false
+                  performs:
+                  - perform: action.retry
+                    data:
+                      trials: '{{retry_trials}}'
+                      delay: 10
+      - perform: http.get
+        data:
+          headers:
+            Authorization: Bearer action.get_var.token
+          path: '{{supplier_server}}/items/part/{{id_item}}/part/{{id_part}}'
+        responses:
+          is_success:
+            code: 200
+            contains: ok
+            performs:
+            - perform: log.info('Successfully got item part')
+            - perform: http.post
+              data:
+              url: https://api.my.app.com/items/part/{{id}}
+              headers:
+                Authorization: Bearer env.my_app_api_token
+              body:
+                id: response.id
+                name: response.name
+                price: response.price
+                description: response.description
+                stock: response.stock
+                image: response.img
+                is_active: not(response.is_discontinued)
+          is_error:
+            contains: error
+            code: 400
+            performs:
+            - perform: log.error('Error getting item part', response.body)
+
+vars:
+  user: user
+  pass: pass
+constants:
+  retry_trials: 3
