@@ -103,29 +103,4 @@ class ApiParser:
                     keys.extend(self._get_template_keys(value))
         return keys
 
-    @staticmethod
-    def main():
-        values = {
-            'asset': 'usd',
-            'price': 5,
-            'duration': 1,
-            'direction': 2,
-            'is_demo': 1
-        }
-        api = ApiParser('api_parser_conf.yml')
-        class_code = api.generate_class()
-        print(class_code)
-
-
-if __name__ == '__main__':
-    ApiParser.main()
-
-
-def print_action(api, action_id, values):
-    print(action_id)
-    requests = api.action_requests(action_id, values)
-    for request in requests:
-        print(request)
-    print()
-
 
