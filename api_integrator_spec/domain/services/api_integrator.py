@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, List, Union
 from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
+from api_integrator_spec.domain.value_objects.api_response import ApiResponse
 
 class ApiIntegrator:
     def __init__(self, config_path: str):
@@ -62,7 +63,7 @@ class ApiIntegrator:
         query = {k: self._render_template(v, params) for k, v in data.get('query', {}).items()}
 
         response = self.session.request(method, url, headers=headers, data=body, params=query)
-        params['response'] = ResponseWrapper(response)
+        params['response'] = ApiResponse(response)
 
     def _handle_log(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
         level = command.split('.')[1]
@@ -128,18 +129,6 @@ class ApiIntegrator:
             return self.constants[key]
         else:
             return f"{{{{ {key} }}}}"  # Leave unresolved variables as is
-
-class ResponseWrapper:
-    def __init__(self, response: requests.Response):
-        self.response = response
-
-    def __getattr__(self, name: str) -> Any:
-        if name == 'body':
-            return self.response.text
-        elif name == 'json':
-            return self.response.json()
-        else:
-            return getattr(self.response, name)
 
 def main():
     config_path = 'api_integrator_spec/infrastructure/config/api_parser_conf.yml'
