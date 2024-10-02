@@ -107,7 +107,7 @@ class ApiParserNew:
 
     @staticmethod
     def _create_path(relative_path: str) -> Path:
-        return Path.cwd().resolve() / relative_path
+        return Path.cwd().parent.parent / relative_path
 
 
 def print_action(api, action_id, values):
