@@ -28,7 +28,7 @@ actions:
     performs:
       - perform: http.post
         data:
-          path: '{{supplier_server}}/auth/login'
+          path: '{{supplier_server.url}}/auth/login'
           body:
             user: '{{user}}'
             pass: '{{pass}}'
