@@ -33,41 +33,72 @@ class ApiIntegrator:
         for perform in action.performs:
             self._execute_perform(perform, merged_params)
 
-    def _execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
+    def execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
         command = perform.perform
         data = perform.data if isinstance(perform.data, dict) else perform.data.to_dict() if hasattr(perform, 'data') else {}
 
         command_handlers = {
-            'http.': self._handle_http_request,
-            'log.': self._handle_log,
-            'action.': self._handle_action,
-            'vars.set': self._handle_vars_set,
-            'vars.get': self._handle_vars_get
+            'http.get': self.handle_http_get,
+            'http.post': self.handle_http_post,
+            'http.put': self.handle_http_put,
+            'http.delete': self.handle_http_delete,
+            'log.debug': self.handle_log_debug,
+            'log.info': self.handle_log_info,
+            'log.warning': self.handle_log_warning,
+            'log.error': self.handle_log_error,
+            'log.critical': self.handle_log_critical,
+            'action': self.handle_action,
+            'vars.set': self.handle_vars_set,
+            'vars.get': self.handle_vars_get
         }
 
-        for prefix, handler in command_handlers.items():
-            if command.startswith(prefix):
-                handler(command, data, params)
-                break
+        handler = command_handlers.get(command)
+        if handler:
+            handler(data, params)
         else:
             raise ValueError(f"Unknown command: {command}")
 
         if hasattr(perform, 'responses'):
-            self._handle_responses(perform.responses, params)
+            self.handle_responses(perform.responses, params)
 
-    def _handle_http_request(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
-        method = command.split('.')[1].upper()
-        url = self._render_template(data.get('path', ''), params)
-        headers = {k: self._render_template(v, params) for k, v in data.get('headers', {}).items()}
-        body = self._render_template(json.dumps(data.get('body', {})), params)
-        query = {k: self._render_template(v, params) for k, v in data.get('query', {}).items()}
+    def handle_http_get(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._make_http_request('GET', data, params)
+
+    def handle_http_post(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._make_http_request('POST', data, params)
+
+    def handle_http_put(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._make_http_request('PUT', data, params)
+
+    def handle_http_delete(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._make_http_request('DELETE', data, params)
+
+    def _make_http_request(self, method: str, data: Dict[str, Any], params: Dict[str, Any]):
+        url = self.render_template(data.get('path', ''), params)
+        headers = {k: self.render_template(v, params) for k, v in data.get('headers', {}).items()}
+        body = self.render_template(json.dumps(data.get('body', {})), params)
+        query = {k: self.render_template(v, params) for k, v in data.get('query', {}).items()}
 
         response = self.session.request(method, url, headers=headers, data=body, params=query)
         params['response'] = ApiResponse(response)
 
-    def _handle_log(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
-        level = command.split('.')[1]
-        message = self._render_template(data, params)
+    def handle_log_debug(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._log_message('debug', data, params)
+
+    def handle_log_info(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._log_message('info', data, params)
+
+    def handle_log_warning(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._log_message('warning', data, params)
+
+    def handle_log_error(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._log_message('error', data, params)
+
+    def handle_log_critical(self, data: Dict[str, Any], params: Dict[str, Any]):
+        self._log_message('critical', data, params)
+
+    def _log_message(self, level: str, data: Dict[str, Any], params: Dict[str, Any]):
+        message = self.render_template(data, params)
         getattr(logging, level)(message)
 
     def _handle_action(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
@@ -94,41 +125,41 @@ class ApiIntegrator:
                     self._execute_performs(response.performs, params)
                     return
 
-    def _check_response_conditions(self, conditions: YamlObject, params: Dict[str, Any]) -> bool:
+    def check_response_conditions(self, conditions: YamlObject, params: Dict[str, Any]) -> bool:
         response = params['response']
-        for condition, value in conditions:
-            if condition == 'code' and response.status_code != value:
-                return False
-            elif condition == 'contains' and value not in response.text:
-                return False
-            elif condition == 'has_value' and not response.text:
-                return False
-            # Add more condition checks as needed
-        return True
+        condition_checks = {
+            'code': lambda v: response.status_code == v,
+            'contains': lambda v: v in response.text,
+            'has_value': lambda v: bool(response.text) == v,
+            'matches': lambda v: re.search(v, response.text) is not None,
+            'has_key': lambda v: v in response.json(),
+            'has_keys': lambda v: all(key in response.json() for key in v),
+            'is_empty': lambda v: len(response.text) == 0 if v else len(response.text) > 0,
+            'is_null': lambda v: response.text == 'null' if v else response.text != 'null',
+            'is_type': lambda v: isinstance(response.json(), eval(v)),
+            'length': lambda v: len(response.text) == v,
+            'length_gt': lambda v: len(response.text) > v,
+            'length_lt': lambda v: len(response.text) < v,
+            'length_gte': lambda v: len(response.text) >= v,
+            'length_lte': lambda v: len(response.text) <= v,
+        }
+        return all(condition_checks.get(condition, lambda v: False)(value) for condition, value in conditions)
 
     def _execute_performs(self, performs: List[YamlObject], params: Dict[str, Any]):
         for perform in performs:
             self._execute_perform(perform, params)
 
-    def _render_template(self, template: Union[str, Dict, List], params: Dict[str, Any]) -> Any:
+    def render_template(self, template: Union[str, Dict, List], params: Dict[str, Any]) -> Any:
         if isinstance(template, str):
-            return re.sub(r'\{\{(.+?)\}\}', lambda m: str(self._get_value(m.group(1).strip(), params)), template)
+            return re.sub(r'\{\{(.+?)\}\}', lambda m: str(self.get_value(m.group(1).strip(), params)), template)
         elif isinstance(template, dict):
-            return {k: self._render_template(v, params) for k, v in template.items()}
+            return {k: self.render_template(v, params) for k, v in template.items()}
         elif isinstance(template, list):
-            return [self._render_template(item, params) for item in template]
-        else:
-            return template
+            return [self.render_template(item, params) for item in template]
+        return template
 
-    def _get_value(self, key: str, params: Dict[str, Any]) -> Any:
-        if key in params:
-            return params[key]
-        elif key in self.vars:
-            return self.vars[key]
-        elif key in self.constants:
-            return self.constants[key]
-        else:
-            return f"{{{{ {key} }}}}"  # Leave unresolved variables as is
+    def get_value(self, key: str, params: Dict[str, Any]) -> Any:
+        return params.get(key) or self.vars.get(key) or self.constants.get(key) or f"{{{{ {key} }}}}"
 
 def main():
     config_path = 'api_integrator_spec/infrastructure/config/api_parser_conf.yml'
