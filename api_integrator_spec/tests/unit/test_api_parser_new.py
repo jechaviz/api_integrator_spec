@@ -1,5 +1,5 @@
 import unittest
-from api_integrator_spec.domain.services.api_parser import ApiParser
+from api_integrator_spec.domain.services.api_parser import ApiParser, ApiParserNew
 
 class TestApiParserNew(unittest.TestCase):
     def test_action_requests(self):
