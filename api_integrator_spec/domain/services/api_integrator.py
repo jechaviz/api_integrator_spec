@@ -12,8 +12,8 @@ class ApiIntegrator:
     def __init__(self, config_path: str):
         self.config_path = Path.cwd().parent.parent / config_path
         self.config = self._load_config()
-        self.vars = self.config.vars.to_dict() if hasattr(self.config, 'vars') else {}
-        self.constants = self.config.constants.to_dict() if hasattr(self.config, 'constants') else {}
+        self.vars = self.config.vars if self.config.has('vars') else YamlObject({})
+        self.constants = self.config.constants if self.config.has('constants') else YamlObject({})
         self.session = requests.Session()
         self._setup_logging()
 
@@ -29,13 +29,13 @@ class ApiIntegrator:
         if not action:
             raise ValueError(f"Action '{action_name}' not found in config")
 
-        merged_params = {**self.vars, **(params or {})}
+        merged_params = {**self.vars.to_dict(), **(params or {})}
         for perform in action.performs:
             self.execute_perform(perform, merged_params)
 
     def execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
         command = perform.perform
-        data = perform.data.to_dict() if hasattr(perform, 'data') else {}
+        data = perform.data if perform.has('data') else YamlObject({})
 
         command_parts = command.split('.')
         if len(command_parts) > 1:
@@ -48,29 +48,29 @@ class ApiIntegrator:
         else:
             raise ValueError(f"Invalid command format: {command}")
 
-        if hasattr(perform, 'responses'):
+        if perform.has('responses'):
             self._handle_responses(perform.responses, params)
 
-    def _handle_http(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
+    def _handle_http(self, command: str, data: YamlObject, params: Dict[str, Any]):
         method = command.split('.')[1].upper()
         url = self.render_template(data.get('path', ''), params)
-        headers = {k: self.render_template(v, params) for k, v in data.get('headers', {}).items()}
-        body = self.render_template(json.dumps(data.get('body', {})), params)
-        query = {k: self.render_template(v, params) for k, v in data.get('query', {}).items()}
+        headers = {k: self.render_template(v, params) for k, v in data.get('headers', YamlObject({})).items()}
+        body = self.render_template(json.dumps(data.get('body', YamlObject({})).to_dict()), params)
+        query = {k: self.render_template(v, params) for k, v in data.get('query', YamlObject({})).items()}
 
         response = self.session.request(method, url, headers=headers, data=body, params=query)
         params['response'] = ApiResponse(response)
 
-    def _handle_log(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
+    def _handle_log(self, command: str, data: YamlObject, params: Dict[str, Any]):
         level = command.split('.')[1]
-        message = self.render_template(data, params)
+        message = self.render_template(data.to_dict(), params)
         getattr(logging, level)(message)
 
-    def _handle_action(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
+    def _handle_action(self, command: str, data: YamlObject, params: Dict[str, Any]):
         action_name = command.split('.')[1]
         self.perform_action(action_name, params)
 
-    def _handle_vars(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
+    def _handle_vars(self, command: str, data: YamlObject, params: Dict[str, Any]):
         operation = command.split('.')[1]
         if operation == 'set':
             for key, value in data.items():
@@ -84,7 +84,7 @@ class ApiIntegrator:
     def _handle_responses(self, responses: List[YamlObject], params: Dict[str, Any]):
         response_handlers = {
             'is_success': lambda r, p: self._check_response_conditions(r.is_success, p),
-            'is_error': lambda r, p: hasattr(r, 'is_error') and self._check_response_conditions(r.is_error, p)
+            'is_error': lambda r, p: r.has('is_error') and self._check_response_conditions(r.is_error, p)
         }
 
         for response in responses:
@@ -111,11 +111,11 @@ class ApiIntegrator:
             'length_gte': lambda v: len(response.text) >= v,
             'length_lte': lambda v: len(response.text) <= v,
         }
-        return all(condition_checks.get(condition, lambda v: False)(value) for condition, value in conditions)
+        return all(condition_checks.get(condition, lambda v: False)(value) for condition, value in conditions.items())
 
     def _execute_performs(self, performs: List[YamlObject], params: Dict[str, Any]):
         for perform in performs:
-            self._execute_perform(perform, params)
+            self.execute_perform(perform, params)
 
     def render_template(self, template: Union[str, Dict, List], params: Dict[str, Any]) -> Any:
         if isinstance(template, str):

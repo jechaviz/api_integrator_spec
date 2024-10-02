@@ -25,3 +25,21 @@ class YamlObject:
 
     def get(self, key, default=None):
         return getattr(self, key, default)
+
+    def has(self, key):
+        return key in self.data
+
+    def keys(self):
+        return self.data.keys()
+
+    def values(self):
+        return [YamlObject(value) if isinstance(value, dict) else value for value in self.data.values()]
+
+    def items(self):
+        return [(key, YamlObject(value) if isinstance(value, dict) else value) for key, value in self.data.items()]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __contains__(self, key):
+        return key in self.data
