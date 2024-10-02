@@ -23,20 +23,27 @@ class ApiIntegrator:
             return YamlObject(yaml.safe_load(f))
 
     def _setup_logging(self):
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+    @snoop
     def perform_action(self, action_name: str, params: Dict[str, Any] = None):
         action = self.config.actions.get(action_name)
         if not action:
             raise ValueError(f"Action '{action_name}' not found in config")
 
         merged_params = {**self.vars.to_dict(), **self.constants.to_dict(), **(params or {})}
+        logging.debug(f"Performing action '{action_name}' with params: {merged_params}")
         for perform in action.performs:
             self.execute_perform(perform, merged_params)
 
+    @snoop
     def execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
         command = perform.perform
         data = perform.data if perform.has('data') else YamlObject({})
+
+        logging.debug(f"Executing command: {command}")
+        logging.debug(f"Command data: {data}")
+        logging.debug(f"Params: {params}")
 
         command_parts = command.split('.')
         if len(command_parts) > 1:
@@ -52,14 +59,24 @@ class ApiIntegrator:
         if perform.has('responses'):
             self._handle_responses(perform.responses, params)
 
+    @snoop
     def _handle_http(self, command: str, data: YamlObject, params: Dict[str, Any]):
         method = command.split('.')[1].upper()
         url = self.render_template(data.get('path', ''), params)
         headers = {k: self.render_template(v, params) for k, v in data.get('headers', YamlObject({})).items()}
         body = self.render_template(json.dumps(data.get('body', YamlObject({})).to_dict()), params)
         query = {k: self.render_template(v, params) for k, v in data.get('query', YamlObject({})).items()}
+
+        logging.debug(f"HTTP Request: {method} {url}")
+        logging.debug(f"Headers: {headers}")
+        logging.debug(f"Body: {body}")
+        logging.debug(f"Query: {query}")
+
         response = self.session.request(method, url, headers=headers, data=body, params=query)
         params['response'] = ApiResponse(response)
+
+        logging.debug(f"Response status code: {response.status_code}")
+        logging.debug(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
 
     def _handle_log(self, command: str, data: YamlObject, params: Dict[str, Any]):
         level = command.split('.')[1]
@@ -117,9 +134,12 @@ class ApiIntegrator:
         for perform in performs:
             self.execute_perform(perform, params)
 
+    @snoop
     def render_template(self, template: Union[str, Dict, List], params: Dict[str, Any]) -> Any:
         if isinstance(template, str):
-            return re.sub(r'\{\{(.+?)\}\}', lambda m: str(self.get_value(m.group(1).strip(), params)), template)
+            result = re.sub(r'\{\{(.+?)\}\}', lambda m: str(self.get_value(m.group(1).strip(), params)), template)
+            logging.debug(f"Rendered template: {template} -> {result}")
+            return result
         elif isinstance(template, dict):
             return {k: self.render_template(v, params) for k, v in template.items()}
         elif isinstance(template, list):
@@ -127,7 +147,9 @@ class ApiIntegrator:
         return template
 
     def get_value(self, key: str, params: Dict[str, Any]) -> Any:
-        return params.get(key) or self.vars.get(key) or self.constants.get(key) or f"{{{{ {key} }}}}"
+        value = params.get(key) or self.vars.get(key) or self.constants.get(key) or f"{{{{ {key} }}}}"
+        logging.debug(f"Getting value for key '{key}': {value}")
+        return value
 
 def main():
     config_path = 'infrastructure/config/api_parser_conf.yml'
