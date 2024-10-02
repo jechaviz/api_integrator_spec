@@ -24,10 +24,24 @@ class YamlObject:
         return bool(self.data)
 
     def get(self, key, default=None):
-        return getattr(self, key, default)
+        keys = key.split('.')
+        value = self.data
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default
+        return YamlObject(value) if isinstance(value, dict) else value
 
     def has(self, key):
-        return key in self.data
+        keys = key.split('.')
+        value = self.data
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return False
+        return True
 
     def keys(self):
         return self.data.keys()
@@ -42,4 +56,4 @@ class YamlObject:
         return len(self.data)
 
     def __contains__(self, key):
-        return key in self.data
+        return self.has(key)
