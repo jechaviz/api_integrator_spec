@@ -126,9 +126,7 @@ def main():
         'direction': 2,
         'is_demo': 1
     }
-    from pathlib import Path
-    config_path = Path(__file__).resolve().parent.parent.parent / 'infrastructure' / 'config' / 'api_parser_conf.yml'
-    api = ApiParserNew(config_path)
+    api = ApiParserNew('infrastructure/config/api_parser_conf.yml')
     class_code = api.generate_class()
     print(class_code)
 
