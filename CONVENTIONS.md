@@ -9,8 +9,8 @@
 - Create helper methods for common tasks.
 
 ## Environment
-We use 
-- python 3.12
-- pytest
-- Windows 10 (for command line)
+Preferably, use:
+- python 3.12 goodies
+- prefer pytest over unittest 
+We use Windows 10 (for command line)
   
