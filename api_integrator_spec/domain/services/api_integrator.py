@@ -35,45 +35,24 @@ class ApiIntegrator:
 
     def execute_perform(self, perform: YamlObject, params: Dict[str, Any]):
         command = perform.perform
-        data = perform.data if isinstance(perform.data, dict) else perform.data.to_dict() if hasattr(perform, 'data') else {}
+        data = perform.data.to_dict() if hasattr(perform, 'data') else {}
 
-        command_handlers = {
-            'http.get': self.handle_http_get,
-            'http.post': self.handle_http_post,
-            'http.put': self.handle_http_put,
-            'http.delete': self.handle_http_delete,
-            'log.debug': self.handle_log_debug,
-            'log.info': self.handle_log_info,
-            'log.warning': self.handle_log_warning,
-            'log.error': self.handle_log_error,
-            'log.critical': self.handle_log_critical,
-            'action': self.handle_action,
-            'vars.set': self.handle_vars_set,
-            'vars.get': self.handle_vars_get
-        }
-
-        handler = command_handlers.get(command)
-        if handler:
-            handler(data, params)
+        command_parts = command.split('.')
+        if len(command_parts) > 1:
+            handler_name = f'_handle_{command_parts[0]}'
+            handler = getattr(self, handler_name, None)
+            if handler:
+                handler(command, data, params)
+            else:
+                raise ValueError(f"Unknown command: {command}")
         else:
-            raise ValueError(f"Unknown command: {command}")
+            raise ValueError(f"Invalid command format: {command}")
 
         if hasattr(perform, 'responses'):
-            self.handle_responses(perform.responses, params)
+            self._handle_responses(perform.responses, params)
 
-    def handle_http_get(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._make_http_request('GET', data, params)
-
-    def handle_http_post(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._make_http_request('POST', data, params)
-
-    def handle_http_put(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._make_http_request('PUT', data, params)
-
-    def handle_http_delete(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._make_http_request('DELETE', data, params)
-
-    def _make_http_request(self, method: str, data: Dict[str, Any], params: Dict[str, Any]):
+    def _handle_http(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
+        method = command.split('.')[1].upper()
         url = self.render_template(data.get('path', ''), params)
         headers = {k: self.render_template(v, params) for k, v in data.get('headers', {}).items()}
         body = self.render_template(json.dumps(data.get('body', {})), params)
@@ -82,22 +61,8 @@ class ApiIntegrator:
         response = self.session.request(method, url, headers=headers, data=body, params=query)
         params['response'] = ApiResponse(response)
 
-    def handle_log_debug(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._log_message('debug', data, params)
-
-    def handle_log_info(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._log_message('info', data, params)
-
-    def handle_log_warning(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._log_message('warning', data, params)
-
-    def handle_log_error(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._log_message('error', data, params)
-
-    def handle_log_critical(self, data: Dict[str, Any], params: Dict[str, Any]):
-        self._log_message('critical', data, params)
-
-    def _log_message(self, level: str, data: Dict[str, Any], params: Dict[str, Any]):
+    def _handle_log(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
+        level = command.split('.')[1]
         message = self.render_template(data, params)
         getattr(logging, level)(message)
 
@@ -105,13 +70,16 @@ class ApiIntegrator:
         action_name = command.split('.')[1]
         self.perform_action(action_name, params)
 
-    def _handle_vars_set(self, data: Dict[str, Any], params: Dict[str, Any]):
-        for key, value in data.items():
-            self.vars[key] = self._render_template(value, params)
-
-    def _handle_vars_get(self, data: Dict[str, Any], params: Dict[str, Any]):
-        for key in data:
-            params[key] = self.vars.get(key)
+    def _handle_vars(self, command: str, data: Dict[str, Any], params: Dict[str, Any]):
+        operation = command.split('.')[1]
+        if operation == 'set':
+            for key, value in data.items():
+                self.vars[key] = self.render_template(value, params)
+        elif operation == 'get':
+            for key in data:
+                params[key] = self.vars.get(key)
+        else:
+            raise ValueError(f"Unknown vars operation: {operation}")
 
     def _handle_responses(self, responses: List[YamlObject], params: Dict[str, Any]):
         response_handlers = {
