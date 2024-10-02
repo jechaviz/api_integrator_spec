@@ -35,20 +35,29 @@ class TestYamlObject:
 
     @snoop
     def test_deep_nested_access(self):
-        assert self.yaml_config.actions.auth.performs[0].perform == "http.post"
-        assert self.yaml_config.actions.auth.performs[0].data.path == "{{supplier_server.url}}/auth/login"
+        assert self.yaml_config.actions.auth.performs[0].perform.type == "http.post"
+        assert self.yaml_config.actions.auth.performs[0].perform.data.path == "{{supplier_server.url}}/auth/login"
 
     @snoop
     def test_get_method(self):
         assert self.yaml_config.get('info.title') == "Interaction Configuration with API from My Supplier to integrate with my app"
-        assert self.yaml_config.get('actions.auth.performs.0.perform') == "http.post"
+        assert self.yaml_config.get('actions.auth.performs.0.perform.type') == "http.post"
         assert self.yaml_config.get('non_existent_key', 'default') == 'default'
 
     @snoop
     def test_has_method(self):
         assert self.yaml_config.has('info.title')
-        assert self.yaml_config.has('actions.auth.performs.0.perform')
+        assert self.yaml_config.has('actions.auth.performs.0.perform.type')
         assert not self.yaml_config.has('non_existent_key')
+
+    @snoop
+    def test_nested_perform_structure(self):
+        perform = self.yaml_config.actions.auth.performs[0].perform
+        assert isinstance(perform, YamlObject)
+        assert perform.type == "http.post"
+        assert perform.data.path == "{{supplier_server.url}}/auth/login"
+        assert perform.data.body.user == "{{user}}"
+        assert perform.data.body.pass == "{{pass}}"
 
     @snoop
     def test_to_dict_method(self):
