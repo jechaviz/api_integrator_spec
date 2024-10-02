@@ -62,11 +62,12 @@ class ApiIntegrator:
     @snoop
     def _handle_http(self, command: str, data: YamlObject, params: Dict[str, Any]):
         method = command.split('.')[1].upper()
-        endpoint = data.get('data.path', '')
+        endpoint = data.get('path', '')
         url = self.render_template(endpoint, params)
-        headers = {k: self.render_template(v, params) for k, v in data.get('data.headers', YamlObject({})).items()}
-        body = self.render_template(json.dumps(data.get('data.body', YamlObject({})).to_dict()), params)
-        query = {k: self.render_template(v, params) for k, v in data.get('data.query', YamlObject({})).items()}
+        headers = {k: self.render_template(v, params) for k, v in data.get('headers', {}).items()}
+        body_data = data.get('body', {})
+        body = self.render_template(json.dumps(body_data.to_dict() if isinstance(body_data, YamlObject) else body_data), params)
+        query = {k: self.render_template(v, params) for k, v in data.get('query', {}).items()}
 
         logging.debug(f"HTTP Request: {method} {url}")
         logging.debug(f"Headers: {headers}")
@@ -136,13 +137,13 @@ class ApiIntegrator:
             self.execute_perform(perform, params)
 
     @snoop
-    def render_template(self, template: Union[str, Dict, List], params: Dict[str, Any]) -> Any:
+    def render_template(self, template: Union[str, Dict, List, YamlObject], params: Dict[str, Any]) -> Any:
         if isinstance(template, str):
             result = re.sub(r'\{\{(.+?)\}\}', lambda m: str(self.get_value(m.group(1).strip(), params)), template)
             logging.debug(f"Rendered template: {template} -> {result}")
             return result
-        elif isinstance(template, dict):
-            return {k: self.render_template(v, params) for k, v in template.items()}
+        elif isinstance(template, (dict, YamlObject)):
+            return {k: self.render_template(v, params) for k, v in (template.items() if isinstance(template, YamlObject) else template.items())}
         elif isinstance(template, list):
             return [self.render_template(item, params) for item in template]
         return template
