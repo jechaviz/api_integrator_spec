@@ -1,4 +1,5 @@
 import pytest
+import yaml
 from pathlib import Path
 from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
 
