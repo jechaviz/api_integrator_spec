@@ -70,11 +70,10 @@ class TestYmlObj:
         assert bool(self.conf) is True
         assert bool(YmlObj({})) is False
 
-    @snoop
     def test_nested_perform_structure(self):
         perform = self.conf.actions.auth.performs[0].perform
         assert isinstance(perform, YmlObj)
         assert perform.type == "http.post"
-        assert perform._data.path == "{{supplier_server.url}}/auth/login"
-        assert perform._data.body.user == "{{user}}"
-        assert perform._data.body['pass'] == "{{pass}}"
+        assert perform.data.path == "{{supplier_server.url}}/auth/login"
+        assert perform.data.body.user == "{{user}}"
+        assert perform.data.body.get('pass') == "{{pass}}"
