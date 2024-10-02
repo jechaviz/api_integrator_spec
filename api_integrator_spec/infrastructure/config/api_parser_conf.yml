@@ -26,12 +26,13 @@ actions:
       - users
     description: The actions needed to authenticate
     performs:
-      - perform: http.post
-        data:
-          path: '{{supplier_server.url}}/auth/login'
-          body:
-            user: '{{user}}'
-            pass: '{{pass}}'
+      - perform:
+          type: http.post
+          data:
+            path: '{{supplier_server.url}}/auth/login'
+            body:
+              user: '{{user}}'
+              pass: '{{pass}}'
         responses:
           - is_success:
               code: 200
@@ -54,9 +55,10 @@ actions:
       - items
     description: The actions needed to get item part
     performs:
-      - perform: vars.get
-        data:
-          - session_token
+      - perform:
+          type: vars.get
+          data:
+            - session_token
         responses:
           - is_error:
               is_empty: true
@@ -70,11 +72,12 @@ actions:
                         data:
                           trials: '{{retry_trials}}'
                           delay: 10
-      - perform: http.get
-        data:
-          headers:
-            Authorization: 'Bearer {{session_token}}'
-          path: '{{supplier_server}}/items/part/{{id_item}}/part/{{id_part}}'
+      - perform:
+          type: http.get
+          data:
+            headers:
+              Authorization: 'Bearer {{session_token}}'
+            path: '{{supplier_server}}/items/part/{{id_item}}/part/{{id_part}}'
         responses:
           - is_success:
               code: 200
@@ -82,19 +85,20 @@ actions:
             performs:
               - perform: log.info
                 data: 'Successfully got item part'
-              - perform: http.post
-                data:
-                  url: https://api.my.app.com/items/part/{{id}}
-                  headers:
-                    Authorization: 'Bearer {{my_app_api_token}}'
-                  body:
-                    id: response.id
-                    name: response.name
-                    price: response.price
-                    description: response.description
-                    stock: response.stock
-                    image: response.img
-                    is_active: response.is_active
+              - perform:
+                  type: http.post
+                  data:
+                    url: https://api.my.app.com/items/part/{{id}}
+                    headers:
+                      Authorization: 'Bearer {{my_app_api_token}}'
+                    body:
+                      id: response.id
+                      name: response.name
+                      price: response.price
+                      description: response.description
+                      stock: response.stock
+                      image: response.img
+                      is_active: response.is_active
           - is_error:
               contains: error
               code: 400
