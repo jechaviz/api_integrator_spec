@@ -1,3 +1,4 @@
+import os
 import re
 import ast
 import json
@@ -121,7 +122,6 @@ def main():
         'direction': 2,
         'is_demo': 1
     }
-    import os
     config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'infrastructure', 'config', 'api_parser_conf.yml')
     api = ApiParserNew(config_path)
     class_code = api.generate_class()
