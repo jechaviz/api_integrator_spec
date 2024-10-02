@@ -58,9 +58,12 @@ class TestYmlObj:
         assert 'actions' in keys
 
         for key, value in self.conf.items():
-            if (self.conf.get(key) != value):
-                print(key, value)
-                print(key,self.conf.get(key))
+            get_value = self.conf.get(key)
+            if isinstance(value, YmlObj):
+                assert isinstance(get_value, YmlObj)
+                assert value.to_dict() == get_value.to_dict()
+            else:
+                assert value == get_value
 
 
     def test_bool(self):
