@@ -10,7 +10,7 @@ from api_integrator_spec.domain.value_objects.api_response import ApiResponse
 
 class ApiIntegrator:
     def __init__(self, config_path: str):
-        self.config_path = Path(config_path)
+        self.config_path = Path.cwd().parent.parent / config_path
         self.config = self._load_config()
         self.vars = self.config.vars.to_dict() if hasattr(self.config, 'vars') else {}
         self.constants = self.config.constants.to_dict() if hasattr(self.config, 'constants') else {}
@@ -130,7 +130,7 @@ class ApiIntegrator:
         return params.get(key) or self.vars.get(key) or self.constants.get(key) or f"{{{{ {key} }}}}"
 
 def main():
-    config_path = 'api_integrator_spec/infrastructure/config/api_parser_conf.yml'
+    config_path = 'infrastructure/config/api_parser_conf.yml'
     integrator = ApiIntegrator(config_path)
     
     # Example usage
