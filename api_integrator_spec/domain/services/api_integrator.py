@@ -1,3 +1,4 @@
+import snoop
 import yaml
 import json
 import re
@@ -57,7 +58,6 @@ class ApiIntegrator:
         headers = {k: self.render_template(v, params) for k, v in data.get('headers', YamlObject({})).items()}
         body = self.render_template(json.dumps(data.get('body', YamlObject({})).to_dict()), params)
         query = {k: self.render_template(v, params) for k, v in data.get('query', YamlObject({})).items()}
-
         response = self.session.request(method, url, headers=headers, data=body, params=query)
         params['response'] = ApiResponse(response)
 
