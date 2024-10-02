@@ -4,6 +4,7 @@ import ast
 import json
 import yaml
 from chevron import render
+from pathlib import Path
 from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
 
 class ApiParserNew:
