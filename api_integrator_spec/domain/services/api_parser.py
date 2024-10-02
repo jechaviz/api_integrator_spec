@@ -1,11 +1,8 @@
 import re
-import ast
-import json
 import yaml
 from chevron import render
 from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
 from api_integrator_spec.application.services.action_service import ActionService
-from api_integrator_spec.domain.services.api_parser_new import ApiParserNew
 
 class ApiParser:
     def __init__(self, config_path: str):
@@ -17,14 +14,6 @@ class ApiParser:
         self.var_defaults = self.api.vars
         self.constants = self.api.constants
         self.action_service = ActionService(self)
-    def __init__(self, config_path: str):
-        self.config_path = config_path
-        self.api_name = config_path.replace('.yml', '')
-        self.api = self._load_config()
-        self.action_templates = self._load_action_templates()
-        self.class_template = ''
-        self.var_defaults = self.api.vars
-        self.constants = self.api.constants
 
     def _load_config(self):
         with open(self.config_path) as f:
