@@ -2,6 +2,9 @@ class YamlObject:
   def __init__(self, data):
     self.data = data
 
+  def to_dict(self):
+    return self.data
+
   def __getattr__(self, key):
     if key in self.data:
       value = self.data[key]
