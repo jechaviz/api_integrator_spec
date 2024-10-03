@@ -1,117 +1,102 @@
 api_integrator: 0.0.1
 info:
-  title: Interaction Configuration with API from My Supplier to integrate with my app
+  title: JSONPlaceholder Users API Integration
   version: 1.0.0
-  description: This is a sample configuration file for API integrator
+  description: Configuration for integrating with JSONPlaceholder Users API
   contact:
     name: Developer
-    url: https://my.supplier.com
-    email: support@my.supplier.com
+    url: https://jsonplaceholder.typicode.com
+    email: support@example.com
   lang: python
 supplier_servers:
   - id: prod
-    url: https://api.my.supplier.com
-    description: My Supplier production server
-  - id: sandbox
-    url: https://sandbox.api.my.supplier.com
-    description: My Supplier sandbox server
+    url: https://jsonplaceholder.typicode.com
+    description: JSONPlaceholder production server
 tags:
-  - name: items
-    description: Supplier Endpoints to manage items
   - name: users
-    description: Supplier Endpoints to manage users
+    description: Endpoints to manage users
 actions:
-  auth:
+  get_all_users:
     tags:
       - users
-    description: The actions needed to authenticate
+    description: Get all users
+    performs:
+      - perform:
+          type: http.get
+          data:
+            path: '{{supplier_server.url}}/users'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform: log.info
+                data: 'Successfully retrieved all users'
+              - perform: vars.set
+                data:
+                  all_users: response.json
+          - is_error:
+              code: 400
+            performs:
+              - perform: log.error
+                data: 'Error retrieving users: response.body'
+  get_user_by_id:
+    tags:
+      - users
+    description: Get a user by ID
+    performs:
+      - perform:
+          type: http.get
+          data:
+            path: '{{supplier_server.url}}/users/{{user_id}}'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform: log.info
+                data: 'Successfully retrieved user with ID {{user_id}}'
+              - perform: vars.set
+                data:
+                  current_user: response.json
+          - is_error:
+              code: 404
+            performs:
+              - perform: log.error
+                data: 'User with ID {{user_id}} not found'
+  create_user:
+    tags:
+      - users
+    description: Create a new user
     performs:
       - perform:
           type: http.post
           data:
-            path: '{{supplier_server.url}}/auth/login'
+            path: '{{supplier_server.url}}/users'
             body:
-              user: '{{user}}'
-              pass: '{{pass}}'
+              name: '{{new_user_name}}'
+              username: '{{new_user_username}}'
+              email: '{{new_user_email}}'
         responses:
           - is_success:
-              code: 200
-              contains: ok
+              code: 201
             performs:
+              - perform: log.info
+                data: 'Successfully created new user'
               - perform: vars.set
                 data:
-                  session_token: response.token
-              - perform: log.info
-                data: 'Successfully authenticated'
+                  created_user: response.json
           - is_error:
               code: 400
             performs:
-              - perform: log.debug
-                data: response.body
               - perform: log.error
-                data: 'Error authenticating'
-  get_item_part:
-    tags:
-      - items
-    description: The actions needed to get item part
-    performs:
-      - perform:
-          type: vars.get
-          data:
-            - session_token
-        responses:
-          - is_error:
-              is_empty: true
-            performs:
-              - perform: action.auth
-                responses:
-                  - is_error:
-                      has_value: false
-                    performs:
-                      - perform: this.retry
-                        data:
-                          trials: '{{retry_trials}}'
-                          delay: 10
-      - perform:
-          type: http.get
-          data:
-            headers:
-              Authorization: 'Bearer {{session_token}}'
-            path: '{{supplier_server}}/items/part/{{id_item}}/part/{{id_part}}'
-        responses:
-          - is_success:
-              code: 200
-              contains: ok
-            performs:
-              - perform: log.info
-                data: 'Successfully got item part'
-              - perform:
-                  type: http.post
-                  data:
-                    url: https://api.my.app.com/items/part/{{id}}
-                    headers:
-                      Authorization: 'Bearer {{my_app_api_token}}'
-                    body:
-                      id: response.id
-                      name: response.name
-                      price: response.price
-                      description: response.description
-                      stock: response.stock
-                      image: response.img
-                      is_active: response.is_active
-          - is_error:
-              contains: error
-              code: 400
-            performs:
-              - perform: log.error
-                data: 'Error getting item part: response.body'
+                data: 'Error creating user: response.body'
 
 vars:
-  user: user
-  pass: pass
   supplier_server:
-    id: sandbox
-  my_app_api_token: your_app_token_here
+    id: prod
+  user_id: 1
+  new_user_name: John Doe
+  new_user_username: johndoe
+  new_user_email: john@example.com
 
 constants:
   retry_trials: 3
