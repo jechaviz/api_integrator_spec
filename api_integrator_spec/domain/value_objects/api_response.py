@@ -1,4 +1,5 @@
 import requests
+import json
 
 class ApiResponse:
     def __init__(self, response: requests.Response):
@@ -9,11 +10,33 @@ class ApiResponse:
         self.request = response.request
         self.encoding = response.encoding
         self.cookies = response.cookies
-        self.body= response.text
-        self.json = response.json()
+        self.body = response.text
+        try:
+            self.json = response.json()
+        except json.JSONDecodeError:
+            self.json = None
 
     def __getattr__(self, name: str):
         return getattr(self.response, name)
 
     def __str__(self) -> str:
-        return f"ApiResponse(status_code={self.status_code}, body={self.body[:100]})"
+        elements = [f"status_code={self.status_code}"]
+        
+        # Incluir headers
+        headers_str = ', '.join(f"{k}={v}" for k, v in self.headers.items())
+        elements.append(f"headers={{{headers_str}}}")
+        
+        # Comprobar si el cuerpo es JSON o texto
+        if self.json is not None:
+            body_str = json.dumps(self.json)[:100]  # Limitar a 100 caracteres
+            elements.append(f"body(json)={body_str}")
+        else:
+            body_str = self.body[:100]  # Limitar a 100 caracteres
+            elements.append(f"body(text)={body_str}")
+        
+        # Incluir otros atributos dinámicamente
+        for attr in ['url', 'encoding']:
+            value = getattr(self, attr)
+            elements.append(f"{attr}={value}")
+        
+        return f"ApiResponse({', '.join(elements)})"
