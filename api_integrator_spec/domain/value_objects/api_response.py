@@ -23,19 +23,12 @@ class ApiResponse:
         elements = [f"status_code={self.status_code}"]
         
         # Incluir headers
-        if hasattr(self.headers, 'items'):
-            headers_str = ', '.join(f"{k}={v}" for k, v in self.headers.items())
-        else:
-            headers_str = str(self.headers)
+        headers_str = self._format_headers()
         elements.append(f"headers={{{headers_str}}}")
         
         # Comprobar si el cuerpo es JSON o texto
-        if self.json is not None:
-            body_str = json.dumps(self.json)[:100]  # Limitar a 100 caracteres
-            elements.append(f"body(json)={body_str}")
-        else:
-            body_str = str(self.body)[:100]  # Limitar a 100 caracteres
-            elements.append(f"body(text)={body_str}")
+        body_str = self._format_body()
+        elements.append(body_str)
         
         # Incluir otros atributos dinámicamente
         for attr in ['url', 'encoding']:
@@ -43,3 +36,19 @@ class ApiResponse:
             elements.append(f"{attr}={value}")
         
         return f"ApiResponse({', '.join(elements)})"
+
+    def _format_headers(self) -> str:
+        if isinstance(self.headers, dict):
+            return ', '.join(f"{k}={v}" for k, v in self.headers.items())
+        elif isinstance(self.headers, list):
+            return ', '.join(f"{h[0]}={h[1]}" for h in self.headers)
+        else:
+            return str(self.headers)
+
+    def _format_body(self) -> str:
+        if self.json is not None:
+            body_str = json.dumps(self.json)[:100]  # Limitar a 100 caracteres
+            return f"body(json)={body_str}"
+        else:
+            body_str = str(self.body)[:100]  # Limitar a 100 caracteres
+            return f"body(text)={body_str}"
