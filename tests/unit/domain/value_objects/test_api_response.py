@@ -20,3 +20,7 @@ class TestApiResponse:
     def test_getattr_method(self):
         assert self.api_response.status_code == 200
 
+    def test_to_string(self):
+        print(self.api_response)
+        assert str(self.api_response) == 'ApiResponse(status_code=200, body={"key": "value"})'
+
