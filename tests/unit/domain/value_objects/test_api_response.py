@@ -20,7 +20,26 @@ class TestApiResponse:
     def test_getattr_method(self):
         assert self.api_response.status_code == 200
 
-    def test_to_string(self):
+    def test_str_method(self):
+        self.mock_response.headers = {'Content-Type': 'application/json'}
+        self.mock_response.url = 'https://api.example.com'
+        self.mock_response.encoding = 'utf-8'
+        expected_str = f"ApiResponse(status_code=200, headers={{Content-Type=application/json}}, body(json)={{'key': 'value'}}, url=https://api.example.com, encoding=utf-8)"
+        assert str(self.api_response) == expected_str
+
+    def test_print_api_response(self, capsys):
+        self.mock_response.headers = {'Content-Type': 'application/json'}
+        self.mock_response.url = 'https://api.example.com'
+        self.mock_response.encoding = 'utf-8'
         print(self.api_response)
-        assert str(self.api_response) == 'ApiResponse(status_code=200, body={"key": "value"})'
+        captured = capsys.readouterr()
+        expected_output = f"ApiResponse(status_code=200, headers={{Content-Type=application/json}}, body(json)={{'key': 'value'}}, url=https://api.example.com, encoding=utf-8)\n"
+        assert captured.out == expected_output
+
+    def test_str_method_with_text_response(self):
+        self.mock_response.text = 'This is a text response'
+        self.mock_response.json.side_effect = ValueError
+        self.api_response = ApiResponse(self.mock_response)
+        expected_str = f"ApiResponse(status_code=200, headers={{}}, body(text)=This is a text response, url=mock://test.com, encoding=utf-8)"
+        assert str(self.api_response) == expected_str
 
