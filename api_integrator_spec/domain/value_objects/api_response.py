@@ -32,7 +32,7 @@ class ApiResponse:
         
         # Incluir otros atributos dinámicamente
         for attr in ['url', 'encoding']:
-            value = getattr(self, attr)
+            value = self._format_attribute(attr)
             elements.append(f"{attr}={value}")
         
         return f"ApiResponse({', '.join(elements)})"
@@ -43,7 +43,7 @@ class ApiResponse:
         elif isinstance(self.headers, list):
             return ', '.join(f"{h[0]}={h[1]}" for h in self.headers)
         else:
-            return str(self.headers)
+            return self._format_attribute('headers')
 
     def _format_body(self) -> str:
         if self.json is not None:
@@ -52,3 +52,9 @@ class ApiResponse:
         else:
             body_str = str(self.body)[:100]  # Limitar a 100 caracteres
             return f"body(text)={body_str}"
+
+    def _format_attribute(self, attr: str) -> str:
+        value = getattr(self, attr)
+        if hasattr(value, '__repr__'):
+            return value.__repr__()
+        return str(value)

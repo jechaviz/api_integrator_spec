@@ -21,19 +21,13 @@ class TestApiResponse:
         assert self.api_response.status_code == 200
 
     def test_str_method(self):
-        self.mock_response.headers = {'Content-Type': 'application/json'}
-        self.mock_response.url = 'https://api.example.com'
-        self.mock_response.encoding = 'utf-8'
-        expected_str = f"ApiResponse(status_code=200, headers={{Content-Type=application/json}}, body(json)={{'key': 'value'}}, url=https://api.example.com, encoding=utf-8)"
+        expected_str = f"ApiResponse(status_code=200, headers={{{self.mock_response.headers!r}}}, body(json)={{'key': 'value'}}, url={self.mock_response.url!r}, encoding={self.mock_response.encoding!r})"
         assert str(self.api_response) == expected_str
 
     def test_print_api_response(self, capsys):
-        self.mock_response.headers = {'Content-Type': 'application/json'}
-        self.mock_response.url = 'https://api.example.com'
-        self.mock_response.encoding = 'utf-8'
         print(self.api_response)
         captured = capsys.readouterr()
-        expected_output = f"ApiResponse(status_code=200, headers={{Content-Type=application/json}}, body(json)={{'key': 'value'}}, url=https://api.example.com, encoding=utf-8)\n"
+        expected_output = f"ApiResponse(status_code=200, headers={{{self.mock_response.headers!r}}}, body(json)={{'key': 'value'}}, url={self.mock_response.url!r}, encoding={self.mock_response.encoding!r})\n"
         assert captured.out == expected_output
 
     def test_str_method_with_text_response(self):
