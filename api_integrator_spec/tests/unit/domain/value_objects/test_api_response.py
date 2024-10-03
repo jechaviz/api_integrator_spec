@@ -23,3 +23,13 @@ class TestApiResponse:
     def test_getattr_method_nonexistent_attribute(self):
         with pytest.raises(AttributeError):
             self.api_response.nonexistent_attribute
+
+    def test_str_method(self):
+        expected_str = f"ApiResponse(status_code=200, body={self.mock_response.text}...)"
+        assert str(self.api_response) == expected_str
+
+    def test_print_api_response(self, capsys):
+        print(self.api_response)
+        captured = capsys.readouterr()
+        expected_output = f"ApiResponse(status_code=200, body={self.mock_response.text}...)\n"
+        assert captured.out == expected_output
