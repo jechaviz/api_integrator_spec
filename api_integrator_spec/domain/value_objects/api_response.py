@@ -23,7 +23,10 @@ class ApiResponse:
         elements = [f"status_code={self.status_code}"]
         
         # Incluir headers
-        headers_str = ', '.join(f"{k}={v}" for k, v in self.headers.items())
+        if hasattr(self.headers, 'items'):
+            headers_str = ', '.join(f"{k}={v}" for k, v in self.headers.items())
+        else:
+            headers_str = str(self.headers)
         elements.append(f"headers={{{headers_str}}}")
         
         # Comprobar si el cuerpo es JSON o texto
@@ -31,7 +34,7 @@ class ApiResponse:
             body_str = json.dumps(self.json)[:100]  # Limitar a 100 caracteres
             elements.append(f"body(json)={body_str}")
         else:
-            body_str = self.body[:100]  # Limitar a 100 caracteres
+            body_str = str(self.body)[:100]  # Limitar a 100 caracteres
             elements.append(f"body(text)={body_str}")
         
         # Incluir otros atributos dinámicamente
