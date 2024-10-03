@@ -14,3 +14,6 @@ class ApiResponse:
 
     def __getattr__(self, name: str):
         return getattr(self.response, name)
+
+    def to_string(self) -> str:
+        return f"ApiResponse(status_code={self.status_code}, body={self.body[:100]}...)"
