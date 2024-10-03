@@ -25,7 +25,6 @@ class TestApiResponse:
         assert str(self.api_response) == expected_str
 
     def test_print_api_response(self, capsys):
-        print(self.api_response)
         captured = capsys.readouterr()
         expected_output = f"ApiResponse(status_code=200, headers={{{self.mock_response.headers!r}}}, body(json)={{'key': 'value'}}, url={self.mock_response.url!r}, encoding={self.mock_response.encoding!r})\n"
         assert captured.out == expected_output
