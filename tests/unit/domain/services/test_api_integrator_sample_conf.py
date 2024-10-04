@@ -7,7 +7,7 @@ from api_integrator_spec.domain.value_objects.api_response import ApiResponse
 class TestApiIntegrator:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.config_path = 'infrastructure/config/api_parser_conf.yml'
+        self.config_path = 'infrastructure/config/jsonplaceholder_conf.yml'
         self.integrator = ApiIntegrator(self.config_path)
 
     def test_config_loading(self):

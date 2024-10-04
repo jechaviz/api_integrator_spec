@@ -7,7 +7,7 @@ from api_integrator_spec.domain.value_objects.yaml_object import YmlObj
 class TestYmlObj:
     @pytest.fixture(autouse=True)
     def setup(self):
-        config_path = Path(__file__).parent.parent.parent.parent.parent / 'infrastructure' / 'config' / 'api_parser_conf.yml'
+        config_path = Path(__file__).parent.parent.parent.parent.parent / 'infrastructure' / 'config' / 'jsonplaceholder_conf.yml'
         with open(config_path, 'r') as f:
             self.yaml_config = YmlObj(yaml.safe_load(f))
 
