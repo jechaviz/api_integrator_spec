@@ -7,7 +7,7 @@ from api_integrator_spec.domain.value_objects.api_response import ApiResponse
 class TestApiIntegrator:
     @pytest.fixture
     def integrator(self):
-        config_path = 'infrastructure/config/api_parser_conf.yml'
+        config_path = 'infrastructure/config/jsonplaceholder_conf.yml'
         with patch('api_integrator_spec.domain.services.api_integrator.Path.cwd') as mock_cwd:
             mock_cwd.return_value.parent.parent = MagicMock()
             return ApiIntegrator(config_path)

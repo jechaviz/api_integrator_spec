@@ -37,7 +37,9 @@ class ApiIntegrator:
 
     def execute_perform(self, perform_info: YmlObj, params: Dict[str, Any]):
         command = perform_info.perform
-        data = perform_info.perform.data if perform_info.perform.has('data') else YmlObj({})
+        print(f"Executing {command}")
+        print(f"Params: {command.data}")
+        data = command.data if command.has('data') else YmlObj({})
 
         logging.debug(f"Executing command: {command}")
         logging.debug(f"Command data: {data}")
@@ -174,12 +176,12 @@ class ApiIntegrator:
         return value
 
 def main():
-    config_path = 'infrastructure/config/api_parser_conf.yml'
+    config_path = 'infrastructure/config/jsonplaceholder_conf.yml'
     integrator = ApiIntegrator(config_path)
     
     # Example usage
-    integrator.perform_action('auth')
-    integrator.perform_action('get_item_part', {'id_item': '123', 'id_part': '456'})
+    integrator.perform_action('get_all_users')
+    #integrator.perform_action('get_item_part', {'id_item': '123', 'id_part': '456'})
 
 if __name__ == '__main__':
     main()
