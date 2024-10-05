@@ -75,3 +75,9 @@ class YmlObj:
 
     def __repr__(self):
         return f"YmlObj({self._data})"
+
+    def __setitem__(self, key, value):
+        if isinstance(self._data, dict):
+            self._data[key] = value
+        else:
+            raise TypeError("This YmlObj does not support item assignment")
