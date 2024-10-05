@@ -24,7 +24,7 @@ class ApiIntegrator:
             return YmlObj(yaml.safe_load(f))
 
     def _setup_logging(self):
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     def perform_action(self, action_name: str, params: YmlObj = None):
         action = self.config.actions.get(action_name)
@@ -38,8 +38,6 @@ class ApiIntegrator:
 
     def execute_perform(self, perform_info: YmlObj, params: YmlObj):
         command = perform_info.perform
-        print(f"Executing {command}")
-        print(f"Params: {command.data}")
         data = command.data if command.has('data') else YmlObj({})
 
         logging.debug(f"Executing command: {command}")
@@ -122,7 +120,6 @@ class ApiIntegrator:
         logging.warning("No matching response conditions found")
 
     def _check_response_conditions(self, conditions: YmlObj, params: YmlObj) -> bool:
-        print(f"Checking response conditions: {conditions}")
         response = params['response']
         condition_checks = {
             'code': lambda v: response.status_code == v,
