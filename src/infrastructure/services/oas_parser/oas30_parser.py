@@ -1,5 +1,6 @@
 from src.infrastructure.services.oas_parser.abstract_oas_parser import AbstractOasParser
 from src.domain.entities.api_specification import ApiSpecification
+from src.domain.value_objects.yml_obj import YmlObj
 
 class Oas30Parser(AbstractOasParser):
     def parse(self, oas_file_path: str = '') -> ApiSpecification:
@@ -20,7 +21,7 @@ class Oas30Parser(AbstractOasParser):
         base_url = self.get_base_url()
         version = self.get_version()
 
-        return ApiSpecification(name, base_url, version, self.data.get('servers', []), self.data.get('info', {}))
+        return ApiSpecification(name, base_url, version, YmlObj(self.data.get('servers', [])), YmlObj(self.data.get('info', {})))
 
     def parse_paths(self, api_specification: ApiSpecification) -> None:
         paths = self.data.get('paths', {})
@@ -29,8 +30,8 @@ class Oas30Parser(AbstractOasParser):
                 endpoint = self.create_endpoint(path, method, endpoint_data)
                 api_specification.add_endpoint(endpoint)
 
-    def create_endpoint(self, path: str, method: str, endpoint_data: dict) -> dict:
-        endpoint = {
+    def create_endpoint(self, path: str, method: str, endpoint_data: dict) -> YmlObj:
+        endpoint = YmlObj({
             'path': path,
             'method': method.upper(),
             'operationId': endpoint_data.get('operationId', self.generate_operation_id(method, path)),
@@ -41,18 +42,18 @@ class Oas30Parser(AbstractOasParser):
             'requestBody': endpoint_data.get('requestBody'),
             'security': endpoint_data.get('security', []),
             'tags': endpoint_data.get('tags', []),
-        }
+        })
 
         self.extract_response_examples(endpoint)
         return endpoint
 
-    def extract_response_examples(self, endpoint: dict) -> None:
-        for status_code, response_data in endpoint['responses'].items():
+    def extract_response_examples(self, endpoint: YmlObj) -> None:
+        for status_code, response_data in endpoint.responses.items():
             content = response_data.get('content', {})
             json_content = content.get('application/json', {})
             examples = json_content.get('examples')
             if examples:
-                endpoint['responses'][status_code]['examples'] = examples
+                endpoint.responses[status_code]['examples'] = examples
 
     def parse_components(self, api_specification: ApiSpecification) -> None:
         components = self.data.get('components', {})
@@ -70,26 +71,26 @@ class Oas30Parser(AbstractOasParser):
 
         for component_type, setter in component_types.items():
             if component_type in components:
-                getattr(api_specification, setter)(components[component_type])
+                getattr(api_specification, setter)(YmlObj(components[component_type]))
 
         self.parse_security_requirements(api_specification)
         self.parse_servers(api_specification)
 
     def parse_security_requirements(self, api_specification: ApiSpecification) -> None:
         if 'security' in self.data:
-            api_specification.set_security_requirements(self.data['security'])
+            api_specification.set_security_requirements(YmlObj(self.data['security']))
 
     def parse_servers(self, api_specification: ApiSpecification) -> None:
         if 'servers' in self.data:
-            api_specification.set_servers(self.data['servers'])
+            api_specification.set_servers(YmlObj(self.data['servers']))
 
     def parse_tags(self, api_specification: ApiSpecification) -> None:
         if 'tags' in self.data:
-            api_specification.set_tags(self.data['tags'])
+            api_specification.set_tags(YmlObj(self.data['tags']))
 
     def parse_external_docs(self, api_specification: ApiSpecification) -> None:
         if 'externalDocs' in self.data:
-            api_specification.set_external_docs(self.data['externalDocs'])
+            api_specification.set_external_docs(YmlObj(self.data['externalDocs']))
 
     def get_api_name(self) -> str:
         return self.data.get('info', {}).get('title', 'Unnamed API')

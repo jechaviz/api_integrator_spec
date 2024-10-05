@@ -4,10 +4,11 @@ from pathlib import Path
 from src.domain.interfaces.oas_parser_interface import OasParserInterface
 from src.domain.entities.api_specification import ApiSpecification
 from src.domain.exceptions.oas_parser_exception import OasParserException
+from src.domain.value_objects.yml_obj import YmlObj
 
 class AbstractOasParser(OasParserInterface):
     def __init__(self):
-        self.data = {}
+        self.data = YmlObj({})
 
     def load_data(self, oas_file_path: str) -> None:
         try:
@@ -15,9 +16,9 @@ class AbstractOasParser(OasParserInterface):
             content = path.read_text()
 
             if path.suffix == '.json':
-                self.data = json.loads(content)
+                self.data = YmlObj(json.loads(content))
             elif path.suffix in ['.yaml', '.yml']:
-                self.data = yaml.safe_load(content)
+                self.data = YmlObj(yaml.safe_load(content))
             else:
                 raise OasParserException(f"Unsupported file format: {path.suffix}")
 

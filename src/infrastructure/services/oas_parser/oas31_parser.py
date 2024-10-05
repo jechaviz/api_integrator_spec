@@ -1,5 +1,6 @@
 from src.infrastructure.services.oas_parser.abstract_oas_parser import AbstractOasParser
 from src.domain.entities.api_specification import ApiSpecification
+from src.domain.value_objects.yml_obj import YmlObj
 
 class Oas31Parser(AbstractOasParser):
     def parse(self, oas_file_path: str = '') -> ApiSpecification:
@@ -24,11 +25,11 @@ class Oas31Parser(AbstractOasParser):
 
     def parse_servers(self, servers: list) -> list:
         return [
-            {
+            YmlObj({
                 'url': server['url'],
                 'description': server.get('description'),
                 'variables': server.get('variables', {})
-            }
+            })
             for server in servers
         ]
 
@@ -37,7 +38,7 @@ class Oas31Parser(AbstractOasParser):
         for path, methods in paths.items():
             for method, operation in methods.items():
                 responses = self.parse_responses(operation.get('responses', {}))
-                api_specification.add_endpoint({
+                api_specification.add_endpoint(YmlObj({
                     'path': path,
                     'method': method.upper(),
                     'operationId': operation.get('operationId', self.generate_operation_id(method, path)),
@@ -48,26 +49,26 @@ class Oas31Parser(AbstractOasParser):
                     'responses': responses,
                     'tags': operation.get('tags', []),
                     'security': operation.get('security', []),
-                })
+                }))
 
-    def parse_responses(self, responses: dict) -> dict:
+    def parse_responses(self, responses: dict) -> YmlObj:
         parsed_responses = {}
         for status_code, response in responses.items():
-            parsed_responses[status_code] = {
+            parsed_responses[status_code] = YmlObj({
                 'description': response.get('description', ''),
                 'headers': response.get('headers', {}),
                 'content': self.parse_response_content(response.get('content', {})),
-            }
-        return parsed_responses
+            })
+        return YmlObj(parsed_responses)
 
-    def parse_response_content(self, content: dict) -> dict:
+    def parse_response_content(self, content: dict) -> YmlObj:
         parsed_content = {}
         for media_type, media_type_object in content.items():
-            parsed_content[media_type] = {
+            parsed_content[media_type] = YmlObj({
                 'schema': media_type_object.get('schema'),
                 'examples': media_type_object.get('examples'),
-            }
-        return parsed_content
+            })
+        return YmlObj(parsed_content)
 
     def parse_components(self, api_specification: ApiSpecification) -> None:
         components = self.data.get('components', {})
@@ -86,17 +87,17 @@ class Oas31Parser(AbstractOasParser):
 
         for component_type, setter in component_types.items():
             if component_type in components:
-                getattr(api_specification, setter)(components[component_type])
+                getattr(api_specification, setter)(YmlObj(components[component_type]))
 
         self.parse_security_requirements(api_specification)
 
     def parse_security_requirements(self, api_specification: ApiSpecification) -> None:
         if 'security' in self.data:
-            api_specification.set_security_requirements(self.data['security'])
+            api_specification.set_security_requirements(YmlObj(self.data['security']))
 
     def parse_webhooks(self, api_specification: ApiSpecification) -> None:
         if 'webhooks' in self.data:
-            api_specification.set_webhooks(self.data['webhooks'])
+            api_specification.set_webhooks(YmlObj(self.data['webhooks']))
 
     def get_api_name(self) -> str:
         return self.data.get('info', {}).get('title', 'Unnamed API')
