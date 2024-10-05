@@ -113,16 +113,17 @@ class ApiIntegrator:
             raise ValueError(f"Unknown vars operation: {operation}")
 
     def _handle_responses(self, responses: List[YmlObj], params: YmlObj):
-        response_handlers = {
-            'is_success': lambda r, p: self._check_response_conditions(r.is_success, p),
-            'is_error': lambda r, p: r.has('is_error') and self._check_response_conditions(r.is_error, p)
-        }
-
         for response in responses:
-            for condition, check in response_handlers.items():
-                if check(response, params):
+            if response.has('is_success'):
+                if self._check_response_conditions(response.is_success, params):
                     self._execute_performs(response.performs, params)
                     return
+            elif response.has('is_error'):
+                if self._check_response_conditions(response.is_error, params):
+                    self._execute_performs(response.performs, params)
+                    return
+        
+        logging.warning("No matching response conditions found")
 
     def _check_response_conditions(self, conditions: YmlObj, params: YmlObj) -> bool:
         print(f"Checking response conditions: {conditions}")
