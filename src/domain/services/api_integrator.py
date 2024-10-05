@@ -151,7 +151,7 @@ class ApiIntegrator:
 
     def render_template(self, template: Union[str, YmlObj, List], params: YmlObj) -> Any:
         if isinstance(template, str):
-            result = re.sub(r'\{\{(.+?)\}\}', lambda m: str(self.get_value(m.group(1).strip(), params)), template)
+            result = re.sub(r'\{\{(.+?)\}\}', lambda m: self.render_value(m.group(1).strip(), params), template)
             logging.debug(f"Rendered template: {template} -> {result}")
             return result
         elif isinstance(template, YmlObj):
@@ -159,6 +159,12 @@ class ApiIntegrator:
         elif isinstance(template, list):
             return [self.render_template(item, params) for item in template]
         return template
+
+    def render_value(self, key: str, params: YmlObj) -> str:
+        value = self.get_value(key, params)
+        if isinstance(value, dict):
+            return json.dumps(value)
+        return str(value)
 
     def get_value(self, key: str, params: YmlObj) -> Any:
         if key.startswith('response.'):
