@@ -164,7 +164,13 @@ class ApiIntegrator:
         if key.startswith('response.'):
             response_key = key[9:]  # Remove 'response.' prefix
             if self.latest_response:
-                return getattr(self.latest_response, response_key, f"{{{{ {key} }}}}")
+                if response_key == 'json':
+                    return self.latest_response.json()
+                elif hasattr(self.latest_response, response_key):
+                    return getattr(self.latest_response, response_key)
+                else:
+                    logging.warning(f"Unknown response attribute: {response_key}")
+                    return f"{{{{ {key} }}}}"
             else:
                 logging.warning(f"No response available for key: {key}")
                 return f"{{{{ {key} }}}}"

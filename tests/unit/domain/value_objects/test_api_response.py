@@ -36,3 +36,12 @@ class TestApiResponse:
         expected_str = f"ApiResponse(status_code=200, headers={{}}, body(text)=This is a text response, url=mock://test.com, encoding=utf-8)"
         assert str(self.api_response) == expected_str
 
+    def test_json_method(self):
+        mock_response = Mock()
+        mock_response.json.return_value = {"key": "value"}
+        api_response = ApiResponse(mock_response)
+        assert api_response.json() == {"key": "value"}
+        # Test caching
+        mock_response.json.assert_called_once()
+        api_response.json()
+        mock_response.json.assert_called_once()
