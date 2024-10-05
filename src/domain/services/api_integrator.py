@@ -16,6 +16,7 @@ class ApiIntegrator:
         self.vars = self.config.vars if self.config.has('vars') else YmlObj({})
         self.constants = self.config.constants if self.config.has('constants') else YmlObj({})
         self.session = requests.Session()
+        self.latest_response = None
         self._setup_logging()
 
     def _load_config(self) -> YmlObj:
@@ -82,7 +83,10 @@ class ApiIntegrator:
         logging.debug(f"Query: {query}")
 
         response = self.session.request(method, url, headers=headers, data=body, params=query)
-        params['response'] = ApiResponse(response)
+        api_response = ApiResponse(response)
+        params['response'] = api_response
+        self.latest_response = api_response
+        self.vars['response'] = api_response
 
         logging.debug(f"Response status code: {response.status_code}")
         logging.debug(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
@@ -158,6 +162,14 @@ class ApiIntegrator:
         return template
 
     def get_value(self, key: str, params: Dict[str, Any]) -> Any:
+        if key.startswith('response.'):
+            response_key = key[9:]  # Remove 'response.' prefix
+            if self.latest_response:
+                return getattr(self.latest_response, response_key, f"{{{{ {key} }}}}")
+            else:
+                logging.warning(f"No response available for key: {key}")
+                return f"{{{{ {key} }}}}"
+
         if key == 'supplier_server.url':
             supplier_server = params.get('supplier_server') or self.vars.get('supplier_server') or self.constants.get('supplier_server')
             if isinstance(supplier_server, dict):
