@@ -36,7 +36,6 @@ class ApiIntegrator:
         for perform in action.performs:
             self.execute_perform(perform, merged_params)
 
-    @snoop
     def execute_perform(self, perform_info: YmlObj, params: Dict[str, Any]):
         command = perform_info.perform
         print(f"Executing {command}")
@@ -114,6 +113,7 @@ class ApiIntegrator:
         else:
             raise ValueError(f"Unknown vars operation: {operation}")
 
+    @snoop
     def _handle_responses(self, responses: List[YmlObj], params: Dict[str, Any]):
         response_handlers = {
             'is_success': lambda r, p: self._check_response_conditions(r.is_success, p),
