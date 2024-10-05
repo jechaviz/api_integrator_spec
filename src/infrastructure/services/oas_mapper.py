@@ -1,15 +1,17 @@
-from typing import Dict, Any, List
-from src.domain.entities.api_specification import ApiSpecification
+import yaml
+from pathlib import Path
 from src.domain.value_objects.yml_obj import YmlObj
-from src.infrastructure.services.oas_parser.oas_parser_factory import OasParserFactory
 
 class OasToApiIntegratorMapper:
     def __init__(self, oas_file_path: str):
-        self.oas_parser = OasParserFactory.create(oas_file_path)
-        self.api_spec = self.oas_parser.parse(oas_file_path)
+        self.api_spec = self._load_oas(oas_file_path)
 
-    def map_to_api_integrator_config(self) -> Dict[str, Any]:
-        config = {
+    def _load_oas(self, file_path: str) -> YmlObj:
+        with open(file_path, 'r') as f:
+            return YmlObj(yaml.safe_load(f))
+
+    def map_to_api_integrator_config(self) -> YmlObj:
+        return YmlObj({
             'api_integrator': '0.0.1',
             'info': self._map_info(),
             'supplier_servers': self._map_servers(),
@@ -17,82 +19,83 @@ class OasToApiIntegratorMapper:
             'actions': self._map_actions(),
             'vars': {},
             'constants': {}
-        }
-        return config
+        })
 
-    def _map_info(self) -> Dict[str, Any]:
+    def _map_info(self) -> dict:
         info = self.api_spec.info
         return {
-            'title': info.get('title', 'Unnamed API'),
-            'version': info.get('version', '1.0.0'),
+            'title': info.title,
+            'version': info.version,
             'description': info.get('description', ''),
             'contact': info.get('contact', {}),
-            'lang': 'python'  # Assuming Python as the default language
+            'lang': 'python'
         }
 
-    def _map_servers(self) -> List[Dict[str, Any]]:
+    def _map_servers(self) -> list:
         return [
             {
                 'id': f'server_{i}',
-                'url': server.get('url', ''),
+                'url': server.url,
                 'description': server.get('description', '')
             }
             for i, server in enumerate(self.api_spec.servers)
         ]
 
-    def _map_tags(self) -> List[Dict[str, str]]:
+    def _map_tags(self) -> list:
         return [
             {
-                'name': tag.get('name', ''),
+                'name': tag.name,
                 'description': tag.get('description', '')
             }
             for tag in self.api_spec.tags
         ]
 
-    def _map_actions(self) -> Dict[str, Any]:
+    def _map_actions(self) -> dict:
         actions = {}
-        for endpoint in self.api_spec.get_endpoints():
-            action_name = endpoint['operationId'] or f"{endpoint['method'].lower()}_{endpoint['path'].replace('/', '_')}"
-            actions[action_name] = self._map_endpoint_to_action(endpoint)
+        for path, path_item in self.api_spec.paths.items():
+            for method, operation in path_item.items():
+                if method not in ['get', 'post', 'put', 'delete', 'patch']:
+                    continue
+                action_name = operation.operationId or f"{method}_{path.replace('/', '_')}"
+                actions[action_name] = self._map_operation_to_action(path, method, operation)
         return actions
 
-    def _map_endpoint_to_action(self, endpoint: Dict[str, Any]) -> Dict[str, Any]:
-        action = {
-            'tags': endpoint.get('tags', []),
-            'description': endpoint.get('description', ''),
+    def _map_operation_to_action(self, path: str, method: str, operation: YmlObj) -> dict:
+        return {
+            'tags': operation.get('tags', []),
+            'description': operation.get('description', ''),
             'performs': [
                 {
                     'perform': {
-                        'a': f"http.{endpoint['method'].lower()}",
+                        'a': f"http.{method}",
                         'data': {
-                            'path': f"{{{{supplier_server.url}}}}{endpoint['path']}",
-                            'headers': self._map_headers(endpoint),
-                            'query': self._map_query_params(endpoint),
-                            'body': self._map_request_body(endpoint)
+                            'path': f"{{{{supplier_server.url}}}}{path}",
+                            'headers': self._map_headers(operation),
+                            'query': self._map_query_params(operation),
+                            'body': self._map_request_body(operation)
                         }
                     },
-                    'responses': self._map_responses(endpoint)
+                    'responses': self._map_responses(operation)
                 }
             ]
         }
-        return action
 
-    def _map_headers(self, endpoint: Dict[str, Any]) -> Dict[str, str]:
-        headers = {}
-        for param in endpoint.get('parameters', []):
-            if param.get('in') == 'header':
-                headers[param['name']] = f"{{{{headers.{param['name']}}}}}"
-        return headers
+    def _map_headers(self, operation: YmlObj) -> dict:
+        return {
+            param.name: f"{{{{headers.{param.name}}}}}"
+            for param in operation.get('parameters', [])
+            if param.get('in') == 'header'
+        }
 
-    def _map_query_params(self, endpoint: Dict[str, Any]) -> Dict[str, str]:
-        query_params = {}
-        for param in endpoint.get('parameters', []):
-            if param.get('in') == 'query':
-                query_params[param['name']] = f"{{{{params.{param['name']}}}}}"
-        return query_params
+    def _map_query_params(self, operation: YmlObj) -> dict:
+        return {
+            param.name: f"{{{{params.{param.name}}}}}"
+            for param in operation.get('parameters', [])
+            if param.get('in') == 'query'
+        }
 
-    def _map_request_body(self, endpoint: Dict[str, Any]) -> Dict[str, Any]:
-        request_body = endpoint.get('requestBody', {})
+    def _map_request_body(self, operation: YmlObj) -> dict:
+        request_body = operation.get('requestBody', {})
         if not request_body:
             return {}
         
@@ -102,42 +105,40 @@ class OasToApiIntegratorMapper:
         
         return self._map_schema_to_template(schema)
 
-    def _map_schema_to_template(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+    def _map_schema_to_template(self, schema: YmlObj) -> dict:
         if schema.get('type') == 'object':
-            properties = schema.get('properties', {})
             return {
                 prop: f"{{{{body.{prop}}}}}"
-                for prop in properties.keys()
+                for prop in schema.get('properties', {}).keys()
             }
         return {}
 
-    def _map_responses(self, endpoint: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _map_responses(self, operation: YmlObj) -> list:
         responses = []
-        for status_code, response_data in endpoint.get('responses', {}).items():
-            response = {
-                'is_success' if status_code.startswith('2') else 'is_error': {
+        for status_code, response_data in operation.get('responses', {}).items():
+            responses.append({
+                'is_success' if str(status_code).startswith('2') else 'is_error': {
                     'code': int(status_code)
                 },
                 'performs': [
                     {
                         'perform': {
-                            'a': 'log.info' if status_code.startswith('2') else 'log.error',
-                            'data': f"Response for {endpoint['method']} {endpoint['path']}: {{{{response.body}}}}"
+                            'a': 'log.info' if str(status_code).startswith('2') else 'log.error',
+                            'data': f"Response: {{{{response.body}}}}"
                         }
                     },
                     {
                         'perform': {
                             'a': 'vars.set',
                             'data': {
-                                f"last_{endpoint['method'].lower()}_response": '{{response.body}}'
+                                'last_response': '{{response.body}}'
                             }
                         }
                     }
                 ]
-            }
-            responses.append(response)
+            })
         return responses
 
-def map_oas_to_api_integrator(oas_file_path: str) -> Dict[str, Any]:
+def map_oas_to_api_integrator(oas_file_path: str) -> YmlObj:
     mapper = OasToApiIntegratorMapper(oas_file_path)
     return mapper.map_to_api_integrator_config()
