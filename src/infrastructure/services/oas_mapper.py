@@ -1,5 +1,4 @@
 import yaml
-from pathlib import Path
 from src.domain.value_objects.yml_obj import YmlObj
 
 class OasToApiIntegratorMapper:
