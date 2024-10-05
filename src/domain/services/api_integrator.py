@@ -35,6 +35,7 @@ class ApiIntegrator:
         for perform in action.performs:
             self.execute_perform(perform, merged_params)
 
+    @snoop
     def execute_perform(self, perform_info: YmlObj, params: Dict[str, Any]):
         command = perform_info.perform
         print(f"Executing {command}")
@@ -46,7 +47,7 @@ class ApiIntegrator:
         logging.debug(f"Params: {params}")
 
         if isinstance(command, YmlObj):
-            command_str = command.type
+            command_str = command.a
         elif isinstance(command, str):
             command_str = command
         else:
@@ -88,7 +89,10 @@ class ApiIntegrator:
 
     def _handle_log(self, command: str, data: YmlObj, params: Dict[str, Any]):
         level = command.split('.')[1]
-        message = self.render_template(data.to_dict(), params)
+        if isinstance(data,YmlObj):
+            message = self.render_template(data.to_dict(), params)
+        else:
+            message = self.render_template(data, params)
         getattr(logging, level)(message)
 
     def _handle_action(self, command: str, data: YmlObj, params: Dict[str, Any]):

@@ -22,53 +22,67 @@ actions:
     description: Get all users
     performs:
       - perform:
-          type: http.get
+          a: http.get
           data:
             path: '{{supplier_server.url}}/users'
         responses:
           - is_success:
               code: 200
             performs:
-              - perform: log.info
-                data: 'Successfully retrieved all users'
-              - perform: vars.set
-                data:
-                  all_users: response.json
+              - perform:
+                  a: log.info
+                  data: 'Successfully retrieved all users'
+              - perform:
+                  a: vars.set
+                  data:
+                    all_users: response.json
           - is_error:
               code: 400
             performs:
-              - perform: log.error
-                data: 'Error retrieving users: response.body'
+              - perform:
+                  a: log.error
+                  data: 'Error retrieving users: response.body'
+          - is_error:
+              code: 400
+            performs:
+              - perform:
+                  a: log.error
+                  data: 'Error retrieving users: response.body'
   get_user_by_id:
     tags:
       - users
     description: Get a user by ID
     performs:
       - perform:
-          type: http.get
+          a: http.get
           data:
             path: '{{supplier_server.url}}/users/{{user_id}}'
         responses:
           - is_success:
               code: 200
             performs:
-              - perform: log.info
-                data: 'Successfully retrieved user with ID {{user_id}}'
-              - perform: vars.set
+              - perform:
+                  a: log.info
+                  data: 'Successfully retrieved user with ID {{user_id}}'
+              - perform:
+                  a: vars.set
+                  data:
+                    user: response.json
                 data:
                   current_user: response.json
           - is_error:
               code: 404
             performs:
-              - perform: log.error
-                data: 'User with ID {{user_id}} not found'
+              - perform:
+                  a: log.error
+                  data: 'User with ID {{user_id}} not found'
   create_user:
     tags:
       - users
     description: Create a new user
     performs:
       - perform:
-          type: http.post
+          a: http.post
           data:
             path: '{{supplier_server.url}}/users'
             body:
@@ -79,16 +93,19 @@ actions:
           - is_success:
               code: 201
             performs:
-              - perform: log.info
-                data: 'Successfully created new user'
-              - perform: vars.set
-                data:
-                  created_user: response.json
+              - perform:
+                  a: log.info
+                  data: 'Successfully created new user'
+              - perform:
+                  a: vars.set
+                  data:
+                    created_user: response.json
           - is_error:
               code: 400
             performs:
-              - perform: log.error
-                data: 'Error creating user: response.body'
+              - perform:
+                  a: log.error
+                  data: 'Error creating user: response.body'
 
 vars:
   supplier_server:
