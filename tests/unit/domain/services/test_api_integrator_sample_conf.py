@@ -1,8 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from api_integrator_spec.domain.services.api_integrator import ApiIntegrator
-from api_integrator_spec.domain.value_objects.yml_obj import YmlObj
-from api_integrator_spec.domain.value_objects.api_response import ApiResponse
+from src.domain.services.api_integrator import ApiIntegrator
+from src.domain.value_objects.yml_obj import YmlObj
 
 class TestApiIntegrator:
     @pytest.fixture(autouse=True)

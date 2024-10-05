@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock
-from api_integrator_spec.domain.value_objects.api_response import ApiResponse
+from src.domain.value_objects.api_response import ApiResponse
 
 class TestApiResponse:
     @pytest.fixture(autouse=True)

@@ -6,8 +6,8 @@ import requests
 import logging
 from pathlib import Path
 from typing import Dict, Any, List, Union
-from api_integrator_spec.domain.value_objects.yml_obj import YmlObj
-from api_integrator_spec.domain.value_objects.api_response import ApiResponse
+from src.domain.value_objects.yml_obj import YmlObj
+from src.domain.value_objects.api_response import ApiResponse
 
 class ApiIntegrator:
     def __init__(self, config_path: str):

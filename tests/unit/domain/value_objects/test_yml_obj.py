@@ -2,7 +2,7 @@ import pytest
 import yaml
 import snoop
 from pathlib import Path
-from api_integrator_spec.domain.value_objects.yaml_object import YmlObj
+from src.domain.value_objects.yml_obj import YmlObj
 
 class TestYmlObj:
     @pytest.fixture(autouse=True)

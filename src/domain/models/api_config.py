@@ -1,5 +1,5 @@
 import yaml
-from api_integrator_spec.domain.value_objects.yaml_object import YamlObject
+from src.domain.value_objects.yml_obj import YmlObj
 
 class ApiConfig:
     def __init__(self, config_path: str):
@@ -12,4 +12,4 @@ class ApiConfig:
     def _load_config(self):
         with open(self.config_path) as f:
             data = yaml.safe_load(f)
-            return YamlObject(data)
+            return YmlObj(data)
