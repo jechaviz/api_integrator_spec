@@ -112,7 +112,6 @@ class ApiIntegrator:
         else:
             raise ValueError(f"Unknown vars operation: {operation}")
 
-    @snoop
     def _handle_responses(self, responses: List[YmlObj], params: YmlObj):
         response_handlers = {
             'is_success': lambda r, p: self._check_response_conditions(r.is_success, p),
@@ -126,6 +125,7 @@ class ApiIntegrator:
                     return
 
     def _check_response_conditions(self, conditions: YmlObj, params: YmlObj) -> bool:
+        print(f"Checking response conditions: {conditions}")
         response = params['response']
         condition_checks = {
             'code': lambda v: response.status_code == v,
