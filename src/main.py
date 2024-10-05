@@ -4,7 +4,9 @@ from pathlib import Path
 def main():
     # Definir las rutas de los archivos
     input_file = Path(__file__).parent.parent / 'infrastructure/config/openapi_spec.yaml'
-    output_file = Path(__file__).parent.parent / 'infrastructure/config/api_integrator_config.yaml'
+    
+    # Generar el nombre del archivo de salida
+    output_file = input_file.with_name(input_file.stem + '_ai.yaml')
 
     # Asegurarse de que el directorio de salida exista
     output_file.parent.mkdir(parents=True, exist_ok=True)
