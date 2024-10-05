@@ -8,7 +8,7 @@ from api_integrator_spec.domain.value_objects.yml_obj import YmlObj
 class TestYmlObj_SampleConfig:
     @pytest.fixture(autouse=True)
     def setup(self):
-        config_path = Path.cwd().parent.parent.parent.parent / 'api_integrator_spec/infrastructure/config/sample_conf.yml'
+        config_path = Path.cwd().parent.parent.parent.parent / 'src/infrastructure/config/sample_conf.yml'
         with open(config_path, 'r') as f:
             self.conf = YmlObj(yaml.safe_load(f))
 
