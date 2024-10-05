@@ -171,7 +171,7 @@ class ApiIntegrator:
             response_key = key[9:]  # Remove 'response.' prefix
             if self.latest_response:
                 if response_key == 'json':
-                    return self.latest_response.json()
+                    return self.latest_response.body
                 elif hasattr(self.latest_response, response_key):
                     return getattr(self.latest_response, response_key)
                 else:

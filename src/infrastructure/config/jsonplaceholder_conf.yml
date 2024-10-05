@@ -35,7 +35,7 @@ actions:
               - perform:
                   a: vars.set
                   data:
-                    all_users: response.json
+                    all_users: '{{response.json}}'
           - is_error:
               code: 400
             performs:
@@ -67,9 +67,9 @@ actions:
               - perform:
                   a: vars.set
                   data:
-                    user: response.json
+                    user: '{{response.json}}'
                 data:
-                  current_user: response.json
+                  current_user: '{{response.json}}'
           - is_error:
               code: 404
             performs:
@@ -99,7 +99,7 @@ actions:
               - perform:
                   a: vars.set
                   data:
-                    created_user: response.json
+                    created_user: '{{response.json}}'
           - is_error:
               code: 400
             performs:
