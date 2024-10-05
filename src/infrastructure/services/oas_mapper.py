@@ -10,14 +10,17 @@ class OasToApiIntegratorMapper:
             return YmlObj(yaml.safe_load(f))
 
     def map_to_api_integrator_config(self) -> YmlObj:
+        servers = self._map_servers()
+        default_server = next((server for server in servers if server['id'] == 'prod'), servers[0] if servers else {'id': 'test', 'url': 'http://test.example.com'})
+        
         return YmlObj({
             'api_integrator': '0.0.1',
             'info': self._map_info(),
-            'supplier_servers': self._map_servers(),
+            'supplier_servers': servers,
             'tags': self._map_tags(),
             'actions': self._map_actions(),
             'vars': {
-                'supplier_server': self._map_servers()[0] if self._map_servers() else {'id': 'test', 'url': 'http://test.example.com'}
+                'supplier_server': default_server
             },
             'constants': {}
         })
@@ -33,14 +36,23 @@ class OasToApiIntegratorMapper:
         }
 
     def _map_servers(self) -> list:
-        return [
-            {
-                'id': f'server_{i}',
+        servers = []
+        for i, server in enumerate(self.api_spec.servers):
+            url = server.url.lower()
+            if 'sandbox' in url or 'test' in url or 'staging' in url or 'dev' in url:
+                server_id = f'server_{i}'
+            else:
+                server_id = 'prod'
+            
+            servers.append({
+                'id': server_id,
                 'url': server.url,
                 'description': server.get('description', '')
-            }
-            for i, server in enumerate(self.api_spec.servers)
-        ]
+            })
+        
+        # Ensure 'prod' is always the first server if it exists
+        servers.sort(key=lambda x: x['id'] != 'prod')
+        return servers
 
     def _map_tags(self) -> list:
         return [
