@@ -26,17 +26,17 @@ class ApiIntegrator:
     def _setup_logging(self):
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    def perform_action(self, action_name: str, params: Dict[str, Any] = None):
+    def perform_action(self, action_name: str, params: YmlObj = None):
         action = self.config.actions.get(action_name)
         if not action:
             raise ValueError(f"Action '{action_name}' not found in config")
 
-        merged_params = {**self.vars.to_dict(), **self.constants.to_dict(), **(params or {})}
+        merged_params = YmlObj({**self.vars.to_dict(), **self.constants.to_dict(), **(params.to_dict() if params else {})})
         logging.debug(f"Performing action '{action_name}' with params: {merged_params}")
         for perform in action.performs:
             self.execute_perform(perform, merged_params)
 
-    def execute_perform(self, perform_info: YmlObj, params: Dict[str, Any]):
+    def execute_perform(self, perform_info: YmlObj, params: YmlObj):
         command = perform_info.perform
         print(f"Executing {command}")
         print(f"Params: {command.data}")
@@ -67,21 +67,21 @@ class ApiIntegrator:
         if perform_info.has('responses'):
             self._handle_responses(perform_info.responses, params)
 
-    def _handle_http(self, command: str, data: YmlObj, params: Dict[str, Any]):
+    def _handle_http(self, command: str, data: YmlObj, params: YmlObj):
         method = command.split('.')[1].upper()
         endpoint = data.get('path', '')
         url = self.render_template(endpoint, params)
-        headers = {k: self.render_template(v, params) for k, v in data.get('headers', {}).items()}
-        body_data = data.get('body', {})
-        body = self.render_template(json.dumps(body_data.to_dict() if isinstance(body_data, YmlObj) else body_data), params)
-        query = {k: self.render_template(v, params) for k, v in data.get('query', {}).items()}
+        headers = YmlObj({k: self.render_template(v, params) for k, v in data.get('headers', YmlObj({})).items()})
+        body_data = data.get('body', YmlObj({}))
+        body = self.render_template(json.dumps(body_data.to_dict()), params)
+        query = YmlObj({k: self.render_template(v, params) for k, v in data.get('query', YmlObj({})).items()})
 
         logging.debug(f"HTTP Request: {method} {url}")
         logging.debug(f"Headers: {headers}")
         logging.debug(f"Body: {body}")
         logging.debug(f"Query: {query}")
 
-        response = self.session.request(method, url, headers=headers, data=body, params=query)
+        response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query.to_dict())
         api_response = ApiResponse(response)
         params['response'] = api_response
         self.latest_response = api_response
@@ -90,19 +90,16 @@ class ApiIntegrator:
         logging.debug(f"Response status code: {response.status_code}")
         logging.debug(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
 
-    def _handle_log(self, command: str, data: YmlObj, params: Dict[str, Any]):
+    def _handle_log(self, command: str, data: YmlObj, params: YmlObj):
         level = command.split('.')[1]
-        if isinstance(data,YmlObj):
-            message = self.render_template(data.to_dict(), params)
-        else:
-            message = self.render_template(data, params)
+        message = self.render_template(data.to_dict(), params)
         getattr(logging, level)(message)
 
-    def _handle_action(self, command: str, data: YmlObj, params: Dict[str, Any]):
+    def _handle_action(self, command: str, data: YmlObj, params: YmlObj):
         action_name = command.split('.')[1]
         self.perform_action(action_name, params)
 
-    def _handle_vars(self, command: str, data: YmlObj, params: Dict[str, Any]):
+    def _handle_vars(self, command: str, data: YmlObj, params: YmlObj):
         operation = command.split('.')[1]
         if operation == 'set':
             for key, value in data.items():
@@ -114,7 +111,7 @@ class ApiIntegrator:
             raise ValueError(f"Unknown vars operation: {operation}")
 
     @snoop
-    def _handle_responses(self, responses: List[YmlObj], params: Dict[str, Any]):
+    def _handle_responses(self, responses: List[YmlObj], params: YmlObj):
         response_handlers = {
             'is_success': lambda r, p: self._check_response_conditions(r.is_success, p),
             'is_error': lambda r, p: r.has('is_error') and self._check_response_conditions(r.is_error, p)
@@ -126,7 +123,7 @@ class ApiIntegrator:
                     self._execute_performs(response.performs, params)
                     return
 
-    def _check_response_conditions(self, conditions: YmlObj, params: Dict[str, Any]) -> bool:
+    def _check_response_conditions(self, conditions: YmlObj, params: YmlObj) -> bool:
         response = params['response']
         condition_checks = {
             'code': lambda v: response.status_code == v,
@@ -146,22 +143,22 @@ class ApiIntegrator:
         }
         return all(condition_checks.get(condition, lambda v: False)(value) for condition, value in conditions.items())
 
-    def _execute_performs(self, performs: List[YmlObj], params: Dict[str, Any]):
+    def _execute_performs(self, performs: List[YmlObj], params: YmlObj):
         for perform in performs:
             self.execute_perform(perform, params)
 
-    def render_template(self, template: Union[str, Dict, List, YmlObj], params: Dict[str, Any]) -> Any:
+    def render_template(self, template: Union[str, YmlObj, List], params: YmlObj) -> Any:
         if isinstance(template, str):
             result = re.sub(r'\{\{(.+?)\}\}', lambda m: str(self.get_value(m.group(1).strip(), params)), template)
             logging.debug(f"Rendered template: {template} -> {result}")
             return result
-        elif isinstance(template, (dict, YmlObj)):
-            return {k: self.render_template(v, params) for k, v in (template.items() if isinstance(template, YmlObj) else template.items())}
+        elif isinstance(template, YmlObj):
+            return YmlObj({k: self.render_template(v, params) for k, v in template.items()})
         elif isinstance(template, list):
             return [self.render_template(item, params) for item in template]
         return template
 
-    def get_value(self, key: str, params: Dict[str, Any]) -> Any:
+    def get_value(self, key: str, params: YmlObj) -> Any:
         if key.startswith('response.'):
             response_key = key[9:]  # Remove 'response.' prefix
             if self.latest_response:
@@ -172,11 +169,11 @@ class ApiIntegrator:
 
         if key == 'supplier_server.url':
             supplier_server = params.get('supplier_server') or self.vars.get('supplier_server') or self.constants.get('supplier_server')
-            if isinstance(supplier_server, dict):
-                if 'url' in supplier_server:
-                    return supplier_server['url']
-                elif 'id' in supplier_server:
-                    server_id = supplier_server['id']
+            if isinstance(supplier_server, YmlObj):
+                if supplier_server.has('url'):
+                    return supplier_server.url
+                elif supplier_server.has('id'):
+                    server_id = supplier_server.id
                     for server in self.config.supplier_servers:
                         if server.id == server_id:
                             return server.url
@@ -197,7 +194,7 @@ def main():
     
     # Example usage
     integrator.perform_action('get_all_users')
-    #integrator.perform_action('get_item_part', {'id_item': '123', 'id_part': '456'})
+    #integrator.perform_action('get_item_part', YmlObj({'id_item': '123', 'id_part': '456'}))
 
 if __name__ == '__main__':
     main()

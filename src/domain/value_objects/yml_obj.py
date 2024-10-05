@@ -81,3 +81,23 @@ class YmlObj:
             self._data[key] = value
         else:
             raise TypeError("This YmlObj does not support item assignment")
+
+    def __getitem__(self, key):
+        if isinstance(self._data, dict):
+            value = self._data[key]
+            return YmlObj(value) if isinstance(value, dict) else value
+        elif isinstance(self._data, list):
+            return YmlObj(self._data[key]) if isinstance(self._data[key], dict) else self._data[key]
+        else:
+            raise TypeError("This YmlObj does not support item access")
+
+    def update(self, other):
+        if isinstance(self._data, dict):
+            if isinstance(other, dict):
+                self._data.update(other)
+            elif isinstance(other, YmlObj):
+                self._data.update(other.to_dict())
+            else:
+                raise TypeError("Update only supports dict or YmlObj")
+        else:
+            raise TypeError("This YmlObj does not support update")
