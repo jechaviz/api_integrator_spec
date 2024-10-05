@@ -147,6 +147,3 @@ class OasToApiIntegratorMapper:
             }
         }
 
-def map_oas_to_api_integrator(oas_file_path: str) -> YmlObj:
-    mapper = OasToApiIntegratorMapper(oas_file_path)
-    return mapper.map_to_api_integrator_config()
