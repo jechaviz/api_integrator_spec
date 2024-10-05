@@ -39,10 +39,7 @@ class OasToApiIntegratorMapper:
         servers = []
         for i, server in enumerate(self.api_spec.servers):
             url = server.url.lower()
-            if 'sandbox' in url or 'test' in url or 'staging' in url or 'dev' in url:
-                server_id = f'server_{i}'
-            else:
-                server_id = 'prod'
+            server_id = f'server_{i}' if any(env in url for env in ['sandbox', 'test', 'staging', 'dev']) else 'prod'
             
             servers.append({
                 'id': server_id,
