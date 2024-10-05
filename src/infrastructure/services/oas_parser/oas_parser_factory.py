@@ -1,10 +1,12 @@
 import yaml
 import json
 from pathlib import Path
+from typing import Dict, Any
 from src.domain.interfaces.oas_parser_interface import OasParserInterface
 from src.domain.exceptions.oas_parser_exception import OasParserException
 from src.infrastructure.services.oas_parser.oas30_parser import Oas30Parser
 from src.infrastructure.services.oas_parser.oas31_parser import Oas31Parser
+from src.infrastructure.services.oas_mapper import OasToApiIntegratorMapper
 
 class OasParserFactory:
     @staticmethod
@@ -46,3 +48,8 @@ class OasParserFactory:
             return Oas31Parser()
         else:
             raise OasParserException(f"Unsupported OpenAPI version: {version}")
+
+    @staticmethod
+    def create_and_map(file_path: str) -> Dict[str, Any]:
+        mapper = OasToApiIntegratorMapper(file_path)
+        return mapper.map_to_api_integrator_config()

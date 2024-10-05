@@ -8,20 +8,25 @@ from pathlib import Path
 from typing import Dict, Any, List, Union
 from src.domain.value_objects.yml_obj import YmlObj
 from src.domain.value_objects.api_response import ApiResponse
+from src.infrastructure.services.oas_parser.oas_parser_factory import OasParserFactory
 
 class ApiIntegrator:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, is_oas: bool = False):
         self.config_path = Path(__file__).resolve().parent.parent.parent / config_path
-        self.config = self._load_config()
+        self.config = self._load_config(is_oas)
         self.vars = self.config.vars if self.config.has('vars') else YmlObj({})
         self.constants = self.config.constants if self.config.has('constants') else YmlObj({})
         self.session = requests.Session()
         self.latest_response = None
         self._setup_logging()
 
-    def _load_config(self) -> YmlObj:
-        with open(self.config_path) as f:
-            return YmlObj(yaml.safe_load(f))
+    def _load_config(self, is_oas: bool) -> YmlObj:
+        if is_oas:
+            config_dict = OasParserFactory.create_and_map(str(self.config_path))
+            return YmlObj(config_dict)
+        else:
+            with open(self.config_path) as f:
+                return YmlObj(yaml.safe_load(f))
 
     def _setup_logging(self):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -203,6 +208,12 @@ def main():
     # Example usage
     integrator.perform_action('get_all_users')
     #integrator.perform_action('get_item_part', YmlObj({'id_item': '123', 'id_part': '456'}))
+
+    # Example usage with OAS file
+    oas_path = 'path/to/your/oas_file.yaml'
+    oas_integrator = ApiIntegrator(oas_path, is_oas=True)
+    # Perform actions based on the mapped OAS specification
+    oas_integrator.perform_action('get_users')
 
 if __name__ == '__main__':
     main()
