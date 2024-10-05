@@ -16,7 +16,9 @@ class OasToApiIntegratorMapper:
             'supplier_servers': self._map_servers(),
             'tags': self._map_tags(),
             'actions': self._map_actions(),
-            'vars': {},
+            'vars': {
+                'supplier_server': self._map_servers()[0] if self._map_servers() else {'id': 'test', 'url': 'http://test.example.com'}
+            },
             'constants': {}
         })
 
