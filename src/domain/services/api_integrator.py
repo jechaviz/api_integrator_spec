@@ -92,7 +92,9 @@ class ApiIntegrator:
 
     def _handle_log(self, command: str, data: YmlObj, params: YmlObj):
         level = command.split('.')[1]
-        message = self.render_template(data.to_dict(), params)
+        if not(isinstance(data, str)):
+            data = data.to_dict()
+        message = self.render_template(data, params)
         getattr(logging, level)(message)
 
     def _handle_action(self, command: str, data: YmlObj, params: YmlObj):
