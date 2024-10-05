@@ -116,28 +116,37 @@ class OasToApiIntegratorMapper:
     def _map_responses(self, operation: YmlObj) -> list:
         responses = []
         for status_code, response_data in operation.get('responses', {}).items():
-            responses.append({
-                'is_success' if str(status_code).startswith('2') else 'is_error': {
-                    'code': int(status_code)
-                },
-                'performs': [
-                    {
-                        'perform': {
-                            'a': 'log.info' if str(status_code).startswith('2') else 'log.error',
-                            'data': f"Response: {{{{response.body}}}}"
-                        }
-                    },
-                    {
-                        'perform': {
-                            'a': 'vars.set',
-                            'data': {
-                                'last_response': '{{response.body}}'
-                            }
-                        }
-                    }
-                ]
-            })
+            responses.append(self._map_single_response(status_code, response_data))
         return responses
+
+    def _map_single_response(self, status_code: str, response_data: YmlObj) -> dict:
+        return {
+            'is_success' if str(status_code).startswith('2') else 'is_error': {
+                'code': int(status_code)
+            },
+            'performs': [
+                self._create_log_perform(status_code),
+                self._create_vars_set_perform()
+            ]
+        }
+
+    def _create_log_perform(self, status_code: str) -> dict:
+        return {
+            'perform': {
+                'a': 'log.info' if str(status_code).startswith('2') else 'log.error',
+                'data': f"Response: {{{{response.body}}}}"
+            }
+        }
+
+    def _create_vars_set_perform(self) -> dict:
+        return {
+            'perform': {
+                'a': 'vars.set',
+                'data': {
+                    'last_response': '{{response.body}}'
+                }
+            }
+        }
 
 def map_oas_to_api_integrator(oas_file_path: str) -> YmlObj:
     mapper = OasToApiIntegratorMapper(oas_file_path)
