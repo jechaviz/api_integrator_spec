@@ -114,15 +114,11 @@ class ApiIntegrator:
 
     def _handle_responses(self, responses: List[YmlObj], params: YmlObj):
         for response in responses:
-            if response.has('is_success'):
-                if self._check_response_conditions(response.is_success, params):
+            for condition_type in ['is_success', 'is_error']:
+                if response.has(condition_type) and self._check_response_conditions(response[condition_type], params):
                     self._execute_performs(response.performs, params)
                     return
-            elif response.has('is_error'):
-                if self._check_response_conditions(response.is_error, params):
-                    self._execute_performs(response.performs, params)
-                    return
-        
+
         logging.warning("No matching response conditions found")
 
     def _check_response_conditions(self, conditions: YmlObj, params: YmlObj) -> bool:
