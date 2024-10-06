@@ -8,8 +8,35 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, Any, List, Union
 from src.domain.value_objects.yml_obj import YmlObj
-from src.domain.value_objects.api_response import ApiResponse
 import xmltodict
+
+class ApiResponse:
+    def __init__(self, response: requests.Response):
+        self.response = response
+        self.status_code = response.status_code
+        self.headers = response.headers
+        self.url = response.url
+        self.request = response.request
+        self.encoding = response.encoding
+        self.cookies = response.cookies
+        self.body = response.text
+        self.json = None
+        self.xml = None
+        self._parse_content()
+
+    def _parse_content(self):
+        content_type = self.headers.get('Content-Type', '').lower()
+        if 'application/json' in content_type:
+            try:
+                self.json = self.response.json()
+            except json.JSONDecodeError:
+                pass
+        elif 'application/xml' in content_type or 'text/xml' in content_type:
+            try:
+                self.xml = ET.fromstring(self.body)
+                self.json = xmltodict.parse(self.body)
+            except ET.ParseError:
+                pass
 
 
 class ApiIntegrator:
