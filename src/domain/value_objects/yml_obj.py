@@ -1,3 +1,6 @@
+import yaml
+from pathlib import Path
+
 class YmlObj:
     def __init__(self, data):
         self._data = data
@@ -101,3 +104,14 @@ class YmlObj:
                 raise TypeError("Update only supports dict or YmlObj")
         else:
             raise TypeError("This YmlObj does not support update")
+
+    def save(self, file_path: str):
+        class OrderedDumper(yaml.Dumper):
+            def represent_mapping(self, tag, mapping, flow_style=None):
+                return yaml.Dumper.represent_mapping(self, tag, mapping, flow_style)
+
+        output_file = Path(file_path)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_file, 'w') as f:
+            yaml.dump(self.to_dict(), f, Dumper=OrderedDumper, sort_keys=False)

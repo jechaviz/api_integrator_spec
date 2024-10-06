@@ -173,7 +173,7 @@ class OasToApiIntegratorMapper:
 
 
 def main():
-    # Define the input file path (relative to infraestructure directory)
+    # Define the input file path (relative to infrastructure directory)
     input_file = 'specs/oas/cva/cva.yml'
     # Create the mapper and generate the configuration
     mapper = OasToApiIntegratorMapper(input_file)
@@ -182,12 +182,8 @@ def main():
     # Generate the output file name
     output_file = Path(__file__).parent.parent.parent / 'infrastructure/specs/api_integrator' / (Path(input_file).stem + '_ai.yaml')
 
-    # Ensure the output directory exists
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-
     # Save the configuration to the output file
-    with open(output_file, 'w') as f:
-        yaml.dump(config.to_dict(), f)
+    config.save(str(output_file))
 
     print(f"API Integrator configuration has been saved to {output_file}")
 
