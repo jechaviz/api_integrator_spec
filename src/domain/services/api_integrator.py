@@ -1,219 +1,148 @@
-import snoop
 import yaml
-import json
-import re
-import requests
-import logging
-from pathlib import Path
-from typing import Dict, Any, List, Union
-from src.domain.value_objects.yml_obj import YmlObj
-from src.domain.value_objects.api_response import ApiResponse
+from typing import Dict, Any, List
+from src.domain.entities.api_specification import ApiSpecification
 from src.infrastructure.services.oas_parser.oas_parser_factory import OasParserFactory
 
-class ApiIntegrator:
-    def __init__(self, config_path: str, is_oas: bool = False):
-        self.config_path = Path(__file__).resolve().parent.parent.parent / config_path
-        self.config = self._load_config(is_oas)
-        self.vars = self.config.vars if self.config.has('vars') else YmlObj({})
-        self.constants = self.config.constants if self.config.has('constants') else YmlObj({})
-        self.session = requests.Session()
-        self.latest_response = None
-        self._setup_logging()
+class OasToApiIntegratorMapper:
+    def __init__(self, oas_file_path: str):
+        self.oas_parser = OasParserFactory.create(oas_file_path)
+        self.api_spec = self.oas_parser.parse(oas_file_path)
 
-    def _load_config(self, is_oas: bool) -> YmlObj:
-        if is_oas:
-            config_dict = OasParserFactory.create_and_map(str(self.config_path))
-            return YmlObj(config_dict)
-        else:
-            with open(self.config_path) as f:
-                return YmlObj(yaml.safe_load(f))
-
-    def _setup_logging(self):
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-    def perform_action(self, action_name: str, params: YmlObj = None):
-        action = self.config.actions.get(action_name)
-        if not action:
-            raise ValueError(f"Action '{action_name}' not found in config")
-
-        merged_params = YmlObj({**self.vars.to_dict(), **self.constants.to_dict(), **(params.to_dict() if params else {})})
-        logging.debug(f"Performing action '{action_name}' with params: {merged_params}")
-        for perform in action.performs:
-            self.execute_perform(perform, merged_params)
-
-    def execute_perform(self, perform_info: YmlObj, params: YmlObj):
-        command = perform_info.perform
-        data = command.data if command.has('data') else YmlObj({})
-
-        logging.debug(f"Executing command: {command}")
-        logging.debug(f"Command data: {data}")
-        logging.debug(f"Params: {params}")
-
-        if isinstance(command, YmlObj):
-            command_str = command.a
-        elif isinstance(command, str):
-            command_str = command
-        else:
-            raise ValueError(f"Invalid command type: {type(command)}")
-
-        command_parts = command_str.split('.')
-        if len(command_parts) > 1:
-            handler_name = f'_handle_{command_parts[0]}'
-            handler = getattr(self, handler_name, None)
-            if handler:
-                handler(command_str, data, params)
-            else:
-                raise ValueError(f"Unknown command: {command_str}")
-        else:
-            raise ValueError(f"Invalid command format: {command_str}")
-
-        if perform_info.has('responses'):
-            self._handle_responses(perform_info.responses, params)
-
-    def _handle_http(self, command: str, data: YmlObj, params: YmlObj):
-        method = command.split('.')[1].upper()
-        endpoint = data.get('path', '')
-        url = self.render_template(endpoint, params)
-        headers = YmlObj({k: self.render_template(v, params) for k, v in data.get('headers', YmlObj({})).items()})
-        body_data = data.get('body', YmlObj({}))
-        body = self.render_template(json.dumps(body_data.to_dict()), params)
-        query = YmlObj({k: self.render_template(v, params) for k, v in data.get('query', YmlObj({})).items()})
-
-        logging.debug(f"HTTP Request: {method} {url}")
-        logging.debug(f"Headers: {headers}")
-        logging.debug(f"Body: {body}")
-        logging.debug(f"Query: {query}")
-
-        response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query.to_dict())
-        api_response = ApiResponse(response)
-        params['response'] = api_response
-        self.latest_response = api_response
-        self.vars['response'] = api_response
-
-        logging.debug(f"Response status code: {response.status_code}")
-        logging.debug(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
-
-    def _handle_log(self, command: str, data: YmlObj, params: YmlObj):
-        level = command.split('.')[1]
-        if not(isinstance(data, str)):
-            data = data.to_dict()
-        message = self.render_template(data, params)
-        getattr(logging, level)(message)
-
-    def _handle_action(self, command: str, data: YmlObj, params: YmlObj):
-        action_name = command.split('.')[1]
-        self.perform_action(action_name, params)
-
-    def _handle_vars(self, command: str, data: YmlObj, params: YmlObj):
-        operation = command.split('.')[1]
-        if operation == 'set':
-            for key, value in data.items():
-                self.vars[key] = self.render_template(value, params)
-        elif operation == 'get':
-            for key in data:
-                params[key] = self.vars.get(key)
-        else:
-            raise ValueError(f"Unknown vars operation: {operation}")
-
-    def _handle_responses(self, responses: List[YmlObj], params: YmlObj):
-        for response in responses:
-            for condition_type in ['is_success', 'is_error']:
-                if response.has(condition_type) and self._check_response_conditions(response[condition_type], params):
-                    self._execute_performs(response.performs, params)
-                    return
-
-        logging.warning("No matching response conditions found")
-
-    def _check_response_conditions(self, conditions: YmlObj, params: YmlObj) -> bool:
-        response = params['response']
-        condition_checks = {
-            'code': lambda v: response.status_code == v,
-            'contains': lambda v: v in response.text,
-            'has_value': lambda v: bool(response.text) == v,
-            'matches': lambda v: re.search(v, response.text) is not None,
-            'has_key': lambda v: v in response.json(),
-            'has_keys': lambda v: all(key in response.json() for key in v),
-            'is_empty': lambda v: len(response.text) == 0 if v else len(response.text) > 0,
-            'is_null': lambda v: response.text == 'null' if v else response.text != 'null',
-            'is_type': lambda v: isinstance(response.json(), eval(v)),
-            'length': lambda v: len(response.text) == v,
-            'length_gt': lambda v: len(response.text) > v,
-            'length_lt': lambda v: len(response.text) < v,
-            'length_gte': lambda v: len(response.text) >= v,
-            'length_lte': lambda v: len(response.text) <= v,
+    def map_to_api_integrator_config(self) -> Dict[str, Any]:
+        config = {
+            'api_integrator': '0.0.1',
+            'info': self._map_info(),
+            'supplier_servers': self._map_servers(),
+            'tags': self._map_tags(),
+            'actions': self._map_actions(),
+            'vars': {},
+            'constants': {}
         }
-        return all(condition_checks.get(condition, lambda v: False)(value) for condition, value in conditions.items())
+        return config
 
-    def _execute_performs(self, performs: List[YmlObj], params: YmlObj):
-        for perform in performs:
-            self.execute_perform(perform, params)
+    def _map_info(self) -> Dict[str, Any]:
+        info = self.api_spec.info
+        return {
+            'title': info.get('title', 'Unnamed API'),
+            'version': info.get('version', '1.0.0'),
+            'description': info.get('description', ''),
+            'contact': info.get('contact', {}),
+            'lang': 'python'  # Assuming Python as the default language
+        }
 
-    def render_template(self, template: Union[str, YmlObj, List], params: YmlObj) -> Any:
-        if isinstance(template, str):
-            result = re.sub(r'\{\{(.+?)\}\}', lambda m: self.render_value(m.group(1).strip(), params), template)
-            logging.debug(f"Rendered template: {template} -> {result}")
-            return result
-        elif isinstance(template, YmlObj):
-            return YmlObj({k: self.render_template(v, params) for k, v in template.items()})
-        elif isinstance(template, list):
-            return [self.render_template(item, params) for item in template]
-        return template
+    def _map_servers(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                'id': f'server_{i}',
+                'url': server.get('url', ''),
+                'description': server.get('description', '')
+            }
+            for i, server in enumerate(self.api_spec.servers)
+        ]
 
-    def render_value(self, key: str, params: YmlObj) -> str:
-        value = self.get_value(key, params)
-        if isinstance(value, dict):
-            return json.dumps(value)
-        return str(value)
+    def _map_tags(self) -> List[Dict[str, str]]:
+        return [
+            {
+                'name': tag.get('name', ''),
+                'description': tag.get('description', '')
+            }
+            for tag in self.api_spec.tags
+        ]
 
-    def get_value(self, key: str, params: YmlObj) -> Any:
-        if key.startswith('response.'):
-            response_key = key[9:]  # Remove 'response.' prefix
-            if self.latest_response:
-                if response_key == 'json':
-                    return self.latest_response.body
-                elif hasattr(self.latest_response, response_key):
-                    return getattr(self.latest_response, response_key)
-                else:
-                    logging.warning(f"Unknown response attribute: {response_key}")
-                    return f"{{{{ {key} }}}}"
-            else:
-                logging.warning(f"No response available for key: {key}")
-                return f"{{{{ {key} }}}}"
+    def _map_actions(self) -> Dict[str, Any]:
+        actions = {}
+        for endpoint in self.api_spec.get_endpoints():
+            action_name = endpoint['operationId'] or f"{endpoint['method'].lower()}_{endpoint['path'].replace('/', '_')}"
+            actions[action_name] = self._map_endpoint_to_action(endpoint)
+        return actions
 
-        if key == 'supplier_server.url':
-            supplier_server = params.get('supplier_server') or self.vars.get('supplier_server') or self.constants.get('supplier_server')
-            if isinstance(supplier_server, YmlObj):
-                if supplier_server.has('url'):
-                    return supplier_server.url
-                elif supplier_server.has('id'):
-                    server_id = supplier_server.id
-                    for server in self.config.supplier_servers:
-                        if server.id == server_id:
-                            return server.url
-            elif isinstance(supplier_server, str):
-                for server in self.config.supplier_servers:
-                    if server.id == supplier_server:
-                        return server.url
-            logging.warning(f"Could not find supplier_server.url for {supplier_server}")
-            return f"{{{{ supplier_server.url }}}}"
+    def _map_endpoint_to_action(self, endpoint: Dict[str, Any]) -> Dict[str, Any]:
+        action = {
+            'tags': endpoint.get('tags', []),
+            'description': endpoint.get('description', ''),
+            'performs': [
+                {
+                    'perform': {
+                        'a': f"http.{endpoint['method'].lower()}",
+                        'data': {
+                            'path': f"{{{{supplier_server.url}}}}{endpoint['path']}",
+                            'headers': self._map_headers(endpoint),
+                            'query': self._map_query_params(endpoint),
+                            'body': self._map_request_body(endpoint)
+                        }
+                    },
+                    'responses': self._map_responses(endpoint)
+                }
+            ]
+        }
+        return action
+
+    def _map_headers(self, endpoint: Dict[str, Any]) -> Dict[str, str]:
+        headers = {}
+        for param in endpoint.get('parameters', []):
+            if param.get('in') == 'header':
+                headers[param['name']] = f"{{{{headers.{param['name']}}}}}"
+        return headers
+
+    def _map_query_params(self, endpoint: Dict[str, Any]) -> Dict[str, str]:
+        query_params = {}
+        for param in endpoint.get('parameters', []):
+            if param.get('in') == 'query':
+                query_params[param['name']] = f"{{{{params.{param['name']}}}}}"
+        return query_params
+
+    def _map_request_body(self, endpoint: Dict[str, Any]) -> Dict[str, Any]:
+        request_body = endpoint.get('requestBody', {})
+        if not request_body:
+            return {}
         
-        value = params.get(key) or self.vars.get(key) or self.constants.get(key) or f"{{{{ {key} }}}}"
-        logging.debug(f"Getting value for key '{key}': {value}")
-        return value
+        content = request_body.get('content', {})
+        json_content = content.get('application/json', {})
+        schema = json_content.get('schema', {})
+        
+        return self._map_schema_to_template(schema)
 
-def main():
-    config_path = 'infrastructure/config/jsonplaceholder_conf.yml'
-    integrator = ApiIntegrator(config_path)
-    
-    # Example usage
-    integrator.perform_action('get_all_users')
-    #integrator.perform_action('get_item_part', YmlObj({'id_item': '123', 'id_part': '456'}))
+    def _map_schema_to_template(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        if schema.get('type') == 'object':
+            properties = schema.get('properties', {})
+            return {
+                prop: f"{{{{body.{prop}}}}}"
+                for prop in properties.keys()
+            }
+        return {}
 
-    # Example usage with OAS file
-    oas_path = 'path/to/your/oas_file.yaml'
-    oas_integrator = ApiIntegrator(oas_path, is_oas=True)
-    # Perform actions based on the mapped OAS specification
-    oas_integrator.perform_action('get_users')
+    def _map_responses(self, endpoint: Dict[str, Any]) -> List[Dict[str, Any]]:
+        responses = []
+        for status_code, response_data in endpoint.get('responses', {}).items():
+            response = {
+                'is_success' if status_code.startswith('2') else 'is_error': {
+                    'code': int(status_code)
+                },
+                'performs': [
+                    {
+                        'perform': {
+                            'a': 'log.info' if status_code.startswith('2') else 'log.error',
+                            'data': f"Response for {endpoint['method']} {endpoint['path']}: {{{{response.body}}}}"
+                        }
+                    },
+                    {
+                        'perform': {
+                            'a': 'vars.set',
+                            'data': {
+                                f"last_{endpoint['method'].lower()}_response": '{{response.body}}'
+                            }
+                        }
+                    }
+                ]
+            }
+            responses.append(response)
+        return responses
 
-if __name__ == '__main__':
-    main()
+    def save_api_integrator_config(self, output_path: str):
+        config = self.map_to_api_integrator_config()
+        with open(output_path, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False)
+
+def map_oas_to_api_integrator(oas_file_path: str, output_path: str):
+    mapper = OasToApiIntegratorMapper(oas_file_path)
+    mapper.save_api_integrator_config(output_path)

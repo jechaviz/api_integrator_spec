@@ -21,7 +21,7 @@ class Oas30Parser(AbstractOasParser):
         base_url = self.get_base_url()
         version = self.get_version()
 
-        return ApiSpecification(name, base_url, version, YmlObj(self.data.get('servers', [])), YmlObj(self.data.get('info', {})))
+        return ApiSpecification(name, base_url, version, self.data.get('servers', []), self.data.get('info', {}))
 
     def parse_paths(self, api_specification: ApiSpecification) -> None:
         paths = self.data.get('paths', {})
@@ -78,19 +78,19 @@ class Oas30Parser(AbstractOasParser):
 
     def parse_security_requirements(self, api_specification: ApiSpecification) -> None:
         if 'security' in self.data:
-            api_specification.set_security_requirements(YmlObj(self.data['security']))
+            api_specification.set_security_requirements(self.data['security'])
 
     def parse_servers(self, api_specification: ApiSpecification) -> None:
         if 'servers' in self.data:
-            api_specification.set_servers(YmlObj(self.data['servers']))
+            api_specification.set_servers(self.data['servers'])
 
     def parse_tags(self, api_specification: ApiSpecification) -> None:
         if 'tags' in self.data:
-            api_specification.set_tags(YmlObj(self.data['tags']))
+            api_specification.set_tags(self.data['tags'])
 
     def parse_external_docs(self, api_specification: ApiSpecification) -> None:
         if 'externalDocs' in self.data:
-            api_specification.set_external_docs(YmlObj(self.data['externalDocs']))
+            api_specification.set_external_docs(self.data['externalDocs'])
 
     def get_api_name(self) -> str:
         return self.data.get('info', {}).get('title', 'Unnamed API')

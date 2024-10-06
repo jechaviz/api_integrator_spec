@@ -38,7 +38,7 @@ class Oas31Parser(AbstractOasParser):
         for path, methods in paths.items():
             for method, operation in methods.items():
                 responses = self.parse_responses(operation.get('responses', {}))
-                api_specification.add_endpoint(YmlObj({
+                api_specification.add_endpoint({
                     'path': path,
                     'method': method.upper(),
                     'operationId': operation.get('operationId', self.generate_operation_id(method, path)),
@@ -49,7 +49,7 @@ class Oas31Parser(AbstractOasParser):
                     'responses': responses,
                     'tags': operation.get('tags', []),
                     'security': operation.get('security', []),
-                }))
+                })
 
     def parse_responses(self, responses: dict) -> YmlObj:
         parsed_responses = {}
@@ -93,11 +93,11 @@ class Oas31Parser(AbstractOasParser):
 
     def parse_security_requirements(self, api_specification: ApiSpecification) -> None:
         if 'security' in self.data:
-            api_specification.set_security_requirements(YmlObj(self.data['security']))
+            api_specification.set_security_requirements(self.data['security'])
 
     def parse_webhooks(self, api_specification: ApiSpecification) -> None:
         if 'webhooks' in self.data:
-            api_specification.set_webhooks(YmlObj(self.data['webhooks']))
+            api_specification.set_webhooks(self.data['webhooks'])
 
     def get_api_name(self) -> str:
         return self.data.get('info', {}).get('title', 'Unnamed API')
