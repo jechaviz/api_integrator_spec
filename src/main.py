@@ -3,20 +3,20 @@ from pathlib import Path
 import yaml
 
 def main():
-    # Definir las rutas de los archivos
-    input_file = Path(__file__).parent.parent / 'infrastructure/config/openapi_spec.yaml'
+    # Define the input file path (relative to oas_specs directory)
+    input_file = 'supplier1/api1.json'
     
-    # Generar el nombre del archivo de salida
-    output_file = input_file.with_name(input_file.stem + '_ai.yaml')
-
-    # Asegurarse de que el directorio de salida exista
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-
-    # Crear el mapper y generar la configuración
-    mapper = OasToApiIntegratorMapper(str(input_file))
+    # Create the mapper and generate the configuration
+    mapper = OasToApiIntegratorMapper(input_file)
     config = mapper.map_to_api_integrator_config()
 
-    # Guardar la configuración en el archivo de salida
+    # Generate the output file name
+    output_file = Path(__file__).parent / 'infrastructure' / 'config' / (Path(input_file).stem + '_ai.yaml')
+
+    # Ensure the output directory exists
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Save the configuration to the output file
     with open(output_file, 'w') as f:
         yaml.dump(config.to_dict(), f, default_flow_style=False)
 

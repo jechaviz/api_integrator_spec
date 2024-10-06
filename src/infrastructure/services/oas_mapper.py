@@ -1,9 +1,13 @@
 import yaml
+import os
+from pathlib import Path
 from src.domain.value_objects.yml_obj import YmlObj
 
 class OasToApiIntegratorMapper:
     def __init__(self, oas_file_path: str):
-        self.api_spec = self._load_oas(oas_file_path)
+        base_path = Path(__file__).parent.parent / 'oas_specs'
+        full_path = base_path / oas_file_path
+        self.api_spec = self._load_oas(str(full_path))
 
     def _load_oas(self, file_path: str) -> YmlObj:
         with open(file_path, 'r') as f:
