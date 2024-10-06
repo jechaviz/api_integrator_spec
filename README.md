@@ -1,4 +1,4 @@
-# API Integration Convention
+# API Integration Specification (AIS)
 
 This project utilizes a YAML-based configuration file to define the logic for integrating with external APIs. 
 The configuration file specifies actions, responses, and performs, allowing for a flexible and reusable approach to API integration.

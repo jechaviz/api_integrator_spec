@@ -14,7 +14,10 @@ class OasToApiIntegratorMapper:
         with open(file_path, 'r') as f:
             return YmlObj(yaml.safe_load(f))
 
-    def map_to_api_integrator_config(self) -> YmlObj:
+    def oas_to_ais(self) -> YmlObj:
+        """
+        Map the OpenAPI Specification to an API Integrator Specification (AIS).
+        """
         servers = self._map_servers()
         default_server = next((server for server in servers if server['id'] == 'prod'), servers[0] if servers else {'id': 'test', 'url': 'http://test.example.com'})
         
@@ -174,18 +177,18 @@ class OasToApiIntegratorMapper:
 
 def main():
     # Define the input file path (relative to infrastructure directory)
-    input_file = 'specs/oas/cva/cva.yml'
+    oas_path = 'specs/oas/cva.yml'
     # Create the mapper and generate the configuration
-    mapper = OasToApiIntegratorMapper(input_file)
-    config = mapper.map_to_api_integrator_config()
+    mapper = OasToApiIntegratorMapper(oas_path)
+    ais = mapper.oas_to_ais()
 
     # Generate the output file name
-    output_file = Path(__file__).parent.parent.parent / 'infrastructure/specs/api_integrator' / (Path(input_file).stem + '_ai.yaml')
+    ais_path = Path(__file__).parent.parent.parent / 'infrastructure/specs/api_integrator' / (Path(oas_path).stem + '_ai.yaml')
 
     # Save the configuration to the output file
-    config.save(str(output_file))
+    ais.save(str(ais_path))
 
-    print(f"API Integrator configuration has been saved to {output_file}")
+    print(f"API Integrator configuration has been saved to {ais_path}")
 
 
 if __name__ == '__main__':
