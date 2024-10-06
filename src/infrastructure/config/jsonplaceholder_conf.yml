@@ -22,7 +22,7 @@ actions:
     description: Get all users
     performs:
       - perform:
-          a: http.get
+          action: http.get
           data:
             path: '{{supplier_server.url}}/users'
         responses:
@@ -30,20 +30,20 @@ actions:
               code: 200
             performs:
               - perform:
-                  a: log.info
+                  action: log.info
                   data: 'Successfully retrieved all users'
               - perform:
                   a: log.info
                   data: 'Response: {{response.body}}'
               - perform:
-                  a: vars.set
+                  action: vars.set
                   data:
                     all_users: '{{response.body}}'
           - is_error:
               code: 400
             performs:
               - perform:
-                  a: log.error
+                  action: log.error
                   data: 'Error retrieving users: {{response.body}}'
           - is_error:
               code: 400

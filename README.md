@@ -31,7 +31,7 @@ This convention promotes consistency and maintainability across different API in
 - **description**: Description of the action.
 - **performs**: List of actions to perform.
   - **perform**: Commands to be performed.
-    - **a**: The action to perform (e.g., `http.get`, `log.info`, `vars.set`, etc.).
+    - **action**: The action to perform (e.g., `http.get`, `log.info`, `vars.set`, etc.).
     - **data**: Data required by the action to be performed.
   - **responses**: After an action is performed, a response is expected. Responses is a list of responses to handle.
     - **is_success**: Conditions for successful responses.

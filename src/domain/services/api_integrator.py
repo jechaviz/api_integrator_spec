@@ -38,30 +38,30 @@ class ApiIntegrator:
       self.execute_perform(perform, merged_params)
 
   def execute_perform(self, perform_info: YmlObj, params: YmlObj):
-    command = perform_info.perform
-    data = command.data if command.has('data') else YmlObj({})
+    action = perform_info.perform
+    data = action.data if action.has('data') else YmlObj({})
 
-    logging.debug(f"Executing command: {command}")
-    logging.debug(f"Command data: {data}")
+    logging.debug(f"Executing action: {action}")
+    logging.debug(f"Action data: {data}")
     logging.debug(f"Params: {params}")
 
-    if isinstance(command, YmlObj):
-      command_str = command.a
-    elif isinstance(command, str):
-      command_str = command
+    if isinstance(action, YmlObj):
+      action_str = action.action
+    elif isinstance(action, str):
+      action_str = action
     else:
-      raise ValueError(f"Invalid command type: {type(command)}")
+      raise ValueError(f"Invalid action type: {type(action)}")
 
-    command_parts = command_str.split('.')
-    if len(command_parts) > 1:
-      handler_name = f'_handle_{command_parts[0]}'
+    action_parts = action_str.split('.')
+    if len(action_parts) > 1:
+      handler_name = f'_handle_{action_parts[0]}'
       handler = getattr(self, handler_name, None)
       if handler:
-        handler(command_str, data, params)
+        handler(action_str, data, params)
       else:
-        raise ValueError(f"Unknown command: {command_str}")
+        raise ValueError(f"Unknown action: {action_str}")
     else:
-      raise ValueError(f"Invalid command format: {command_str}")
+      raise ValueError(f"Invalid action format: {action_str}")
 
     if perform_info.has('responses'):
       self._handle_responses(perform_info.responses, params)

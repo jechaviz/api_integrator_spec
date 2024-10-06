@@ -86,7 +86,7 @@ class OasToApiIntegratorMapper:
             'performs': [
                 {
                     'perform': {
-                        'a': f"http.{method}",
+                        'action': f"http.{method}",
                         'data': {
                             'path': f"{{{{supplier_server.url}}}}{path}",
                             'headers': self._map_headers(operation),
@@ -159,7 +159,7 @@ class OasToApiIntegratorMapper:
     def _create_log_perform(self, status_code: str) -> dict:
         return {
             'perform': {
-                'a': 'log.info' if str(status_code).startswith('2') else 'log.error',
+                'action': 'log.info' if str(status_code).startswith('2') else 'log.error',
                 'data': f"Response: {{{{response.body}}}}"
             }
         }
@@ -167,7 +167,7 @@ class OasToApiIntegratorMapper:
     def _create_vars_set_perform(self) -> dict:
         return {
             'perform': {
-                'a': 'vars.set',
+                'action': 'vars.set',
                 'data': {
                     'last_response': '{{response.body}}'
                 }
