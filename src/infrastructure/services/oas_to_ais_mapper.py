@@ -146,7 +146,7 @@ class OasToApiIntegratorSpecificationMapper:
         return responses
 
     def _map_single_response(self, status_code: str, response_data: YmlObj) -> dict:
-        return {
+        response = {
             'is_success' if str(status_code).startswith('2') else 'is_error': {
                 'code': int(status_code)
             },
@@ -155,6 +155,13 @@ class OasToApiIntegratorSpecificationMapper:
                 self._create_vars_set_perform()
             ]
         }
+
+        # Add sample response handling
+        if response_data.has('content') and response_data.content.has('application/json'):
+            if response_data.content['application/json'].has('example'):
+                response['performs'].extend(self._create_sample_response_performs(response_data.content['application/json'].example))
+
+        return response
 
     def _create_log_perform(self, status_code: str) -> dict:
         return {
@@ -173,6 +180,34 @@ class OasToApiIntegratorSpecificationMapper:
                 }
             }
         }
+
+    def _create_sample_response_performs(self, example: dict) -> list:
+        performs = []
+        
+        # Log the sample response
+        performs.append({
+            'perform': {
+                'action': 'log.info',
+                'data': 'Sample response received'
+            }
+        })
+
+        # Create a perform action to send the sample response to my_app_server
+        sample_response_body = self._create_sample_response_body(example)
+        performs.append({
+            'perform': {
+                'action': 'http.post',
+                'data': {
+                    'path': '{{my_app_server}}/my_endpoint',
+                    'body': sample_response_body
+                }
+            }
+        })
+
+        return performs
+
+    def _create_sample_response_body(self, example: dict) -> dict:
+        return {key: f'{{{{response.body.{key}}}}}' for key in example.keys()}
 
 
 def main():
