@@ -109,13 +109,14 @@ class OasToApiIntegratorMapper:
 
     @snoop
     def _map_query_params(self, operation: YmlObj) -> dict:
-        print(operation.parameters)
-        query_params = {
-            param.name: f"{{{{params.{param.name}}}}}"
-            for param in operation.get('parameters', [])
-            if param.get('in') == 'query'
-        }
-        print(f"Mapped query parameters: {query_params}")
+        query_params = {}
+        if operation.has('parameters'):
+            query_params = {
+                param.name: f"{{{{params.{param.name}}}}}" if param.has('name') else '{{params}}'
+                for param in operation.parameters
+                if param.get('in') == 'query'
+            }
+            print(f"Mapped query parameters: {query_params}")
         return query_params
 
     def _map_request_body(self, operation: YmlObj) -> dict:
@@ -174,40 +175,28 @@ class OasToApiIntegratorMapper:
 
 
 def main():
-    import argparse
-    from pathlib import Path
-
-    parser = argparse.ArgumentParser(description='Generate API Integrator configuration from OpenAPI specification')
-    parser.add_argument('--input-file', type=str, required=True, help='Path to the OpenAPI specification file')
-    parser.add_argument('--template-file', type=str, help='Path to the API Integrator configuration template file')
-    parser.add_argument('--output-file', type=str, help='Name of the output file')
-    args = parser.parse_args()
+    # Define the input file path (relative to oas_specs directory)
+    input_file = 'cva/cva.yml'
 
     # Create the mapper and generate the configuration
-    mapper = OasToApiIntegratorMapper(args.input_file)
+    mapper = OasToApiIntegratorMapper(input_file)
     config = mapper.map_to_api_integrator_config()
 
     # Generate the output file name
-    if args.output_file:
-        output_file = Path(args.output_file)
-    else:
-        output_file = Path(__file__).parent / 'infrastructure/config' / (Path(args.input_file).stem + '_ai.yaml')
+    output_file = Path(__file__).parent / 'infrastructure/config' / (Path(input_file).stem + '_ai.yaml')
 
     # Ensure the output directory exists
     output_file.parent.mkdir(parents=True, exist_ok=True)
-
-    # Apply template if provided
-    if args.template_file:
-        with open(args.template_file, 'r') as f:
-            template = yaml.safe_load(f)
-        # Merge the generated config with the template
-        config = YmlObj({**template, **config.to_dict()})
 
     # Save the configuration to the output file
     with open(output_file, 'w') as f:
         yaml.dump(config.to_dict(), f, default_flow_style=False)
 
     print(f"API Integrator configuration has been saved to {output_file}")
+
+
+if __name__ == '__main__':
+    main()
 
 
 if __name__ == '__main__':
