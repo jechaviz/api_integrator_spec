@@ -144,3 +144,29 @@ This command will generate the API Integrator configuration file using the speci
 - **Enhanced Error Handling:** Enhanced error handling capabilities, such as logging, retrying, and fallback actions.
 - **Action Libraries:** Common actions encapsulated in action libraries, promoting code reusability and reducing redundancy.
 - **Environment-Specific Variables:** A mechanism for defining environment-specific variables and constants to support different deployment environments.
+
+## Generating API Integrator Configuration
+
+This project now includes a feature to generate the API integrator configuration file from an OpenAPI specification. The generation process supports custom templates, custom output file names, and the ability to specify the input file path.
+
+### Usage
+
+To generate an API integrator configuration, use the following command:
+
+```
+python src/main.py --input-file /path/to/openapi_spec.yaml --template-file /path/to/api_integrator_template.yaml --output-file custom_config.yaml
+```
+
+- `--input-file`: Path to the OpenAPI specification file (required)
+- `--template-file`: Path to the API Integrator configuration template file (optional, default template will be used if not specified)
+- `--output-file`: Name of the output file (optional, default name will be used if not specified)
+
+This command will generate the API Integrator configuration file using the specified input file, template file, and output file name.
+
+### Future Enhancements
+
+- **Schema Validation:** A mechanism for validating the configuration file against a schema.
+- **Sophisticated Response Handling:** Advanced response handling capabilities, such as handling multiple responses, extracting data from responses, and handling errors.
+- **Enhanced Error Handling:** Enhanced error handling capabilities, such as logging, retrying, and fallback actions.
+- **Action Libraries:** Common actions encapsulated in action libraries, promoting code reusability and reducing redundancy.
+- **Environment-Specific Variables:** A mechanism for defining environment-specific variables and constants to support different deployment environments.
