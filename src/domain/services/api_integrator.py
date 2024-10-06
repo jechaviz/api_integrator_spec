@@ -19,6 +19,9 @@ class ApiIntegrator:
     self.session = requests.Session()
     self.latest_response = None
     self._setup_logging()
+    
+    # Initialize my_app_server
+    self.vars['my_app_server'] = self.config.my_app_server if self.config.has('my_app_server') else 'http://localhost:8000'
 
   def _load_config(self) -> YmlObj:
     with open(self.config_path) as f:
