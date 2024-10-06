@@ -107,7 +107,9 @@ class OasToApiIntegratorMapper:
         print(f"Mapped headers: {headers}")
         return headers
 
+    @snoop
     def _map_query_params(self, operation: YmlObj) -> dict:
+        print(operation.parameters)
         query_params = {
             param.name: f"{{{{params.{param.name}}}}}"
             for param in operation.get('parameters', [])
