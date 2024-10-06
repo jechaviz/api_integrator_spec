@@ -112,7 +112,7 @@ class OasToApiIntegratorMapper:
         query_params = {}
         if operation.has('parameters'):
             query_params = {
-                param.name: f"{{{{params.{param.name}}}}}" if param.has('name') else '{{params}}'
+                param.name: f"{{{{{param.name}}}}}" if param.has('name') else '{{params}}'
                 for param in operation.parameters
                 if param.get('in') == 'query'
             }
