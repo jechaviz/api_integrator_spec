@@ -1,0 +1,339 @@
+api_integrator: 0.0.1
+info:
+  title: CVA API Documentation
+  version: 1.0.0 - 2024-09-17
+  description: API for accessing real-time inventory, prices, promotions, product
+    descriptions, and images.
+  contact:
+    name: CVA Support
+    email: support@grupocva.com
+  lang: python
+supplier_servers:
+- id: prod
+  url: https://www.grupocva.com
+  description: Production server
+tags:
+- name: Products
+  description: Endpoints related to product details
+- name: Images
+  description: Endpoints related to retrieving images
+- name: Compatibility
+  description: Endpoints related to product compatibility
+- name: Catalogs
+  description: Endpoints related to various catalogs
+- name: Orders
+  description: Endpoints related to order creation
+actions:
+  get_product_details:
+    tags:
+    - Products
+    description: Retrieve product details based on various parameters.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/lista_precios.xml'
+          headers: {}
+          query:
+            cliente: '{{cliente}}'
+            codigo: '{{codigo}}'
+            clave: '{{clave}}'
+            marca: '{{marca}}'
+            grupo: '{{grupo}}'
+            grupo2: '{{grupo2}}'
+            desc: '{{desc}}'
+            porcentaje: '{{porcentaje}}'
+            sucursales: '{{sucursales}}'
+            dt: '{{dt}}'
+            dc: '{{dc}}'
+            exist: '{{exist}}'
+            promos: '{{promos}}'
+            TipoProducto: '{{TipoProducto}}'
+            MonedaPesos: '{{MonedaPesos}}'
+            TipoCompra: '{{TipoCompra}}'
+            tc: '{{tc}}'
+            TotalSuc: '{{TotalSuc}}'
+            tipo: '{{tipo}}'
+            depto: '{{depto}}'
+            subgpo: '{{subgpo}}'
+            trans: '{{trans}}'
+            dimen: '{{dimen}}'
+            Solucion: '{{Solucion}}'
+            upc: '{{upc}}'
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_high-resolution_images:
+    tags:
+    - Images
+    description: Retrieve high-resolution images for a product.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/imagenes_alta.xml'
+          headers: {}
+          query:
+            cliente: '{{cliente}}'
+            clave: '{{clave}}'
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_compatible_products:
+    tags:
+    - Compatibility
+    description: Retrieve a list of compatible products.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/productos_compatibles.xml'
+          headers: {}
+          query:
+            clave: '{{clave}}'
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_catalog_of_brands:
+    tags:
+    - Catalogs
+    description: Retrieve a catalog of brands.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/marcas.xml'
+          headers: {}
+          query: {}
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_catalog_of_groups:
+    tags:
+    - Catalogs
+    description: Retrieve a catalog of groups.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/grupos.xml'
+          headers: {}
+          query: {}
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_catalog_of_brands_2:
+    tags:
+    - Catalogs
+    description: Retrieve a catalog of brands for specific use cases.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/marcas2.xml'
+          headers: {}
+          query: {}
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_catalog_of_groups_2:
+    tags:
+    - Catalogs
+    description: Retrieve a catalog of groups for specific use cases.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/grupos2.xml'
+          headers: {}
+          query: {}
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_catalog_of_solutions:
+    tags:
+    - Catalogs
+    description: Retrieve a catalog of solutions.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/soluciones.xml'
+          headers: {}
+          query: {}
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_catalog_of_cities:
+    tags:
+    - Catalogs
+    description: Retrieve a catalog of cities.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/ciudad.xml'
+          headers: {}
+          query: {}
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_catalog_of_branches:
+    tags:
+    - Catalogs
+    description: Retrieve a catalog of branches.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/sucursales.xml'
+          headers: {}
+          query: {}
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  get_catalog_of_courier_services:
+    tags:
+    - Catalogs
+    description: Retrieve a catalog of courier services.
+    performs:
+    - perform:
+        a: http.get
+        data:
+          path: '{{supplier_server.url}}/catalogo_clientes_xml/paqueteria.xml'
+          headers: {}
+          query: {}
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+  create_an_order:
+    tags:
+    - Orders
+    description: Create an order using SOAP web service
+    performs:
+    - perform:
+        a: http.post
+        data:
+          path: '{{supplier_server.url}}/pedidos_web/pedidos_ws_cva.php'
+          headers: {}
+          query:
+            Usuario: '{{Usuario}}'
+            PWD: '{{PWD}}'
+            XMLOC: '{{XMLOC}}'
+          body: {}
+      responses:
+      - is_success:
+          code: 200
+        performs:
+        - perform:
+            a: log.info
+            data: 'Response: {{response.body}}'
+        - perform:
+            a: vars.set
+            data:
+              last_response: '{{response.body}}'
+vars:
+  supplier_server:
+    id: prod
+    url: https://www.grupocva.com
+    description: Production server
+constants: {}
