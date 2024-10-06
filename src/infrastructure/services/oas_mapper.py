@@ -174,18 +174,34 @@ class OasToApiIntegratorMapper:
 
 
 def main():
-    # Define the input file path (relative to oas_specs directory)
-    input_file = 'cva/cva.yml'
+    import argparse
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(description='Generate API Integrator configuration from OpenAPI specification')
+    parser.add_argument('--input-file', type=str, required=True, help='Path to the OpenAPI specification file')
+    parser.add_argument('--template-file', type=str, help='Path to the API Integrator configuration template file')
+    parser.add_argument('--output-file', type=str, help='Name of the output file')
+    args = parser.parse_args()
 
     # Create the mapper and generate the configuration
-    mapper = OasToApiIntegratorMapper(input_file)
+    mapper = OasToApiIntegratorMapper(args.input_file)
     config = mapper.map_to_api_integrator_config()
 
     # Generate the output file name
-    output_file = Path(__file__).parent / 'infrastructure/config' / (Path(input_file).stem + '_ai.yaml')
+    if args.output_file:
+        output_file = Path(args.output_file)
+    else:
+        output_file = Path(__file__).parent / 'infrastructure/config' / (Path(args.input_file).stem + '_ai.yaml')
 
     # Ensure the output directory exists
     output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Apply template if provided
+    if args.template_file:
+        with open(args.template_file, 'r') as f:
+            template = yaml.safe_load(f)
+        # Merge the generated config with the template
+        config = YmlObj({**template, **config.to_dict()})
 
     # Save the configuration to the output file
     with open(output_file, 'w') as f:
