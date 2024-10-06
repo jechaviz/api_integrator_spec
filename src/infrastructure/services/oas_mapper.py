@@ -1,6 +1,9 @@
 import yaml
 import os
 from pathlib import Path
+
+from snoop import snoop
+
 from src.domain.value_objects.yml_obj import YmlObj
 
 class OasToApiIntegratorMapper:
@@ -67,11 +70,12 @@ class OasToApiIntegratorMapper:
     def _map_actions(self) -> dict:
         actions = {}
         for path, path_item in self.api_spec.paths.items():
-            for method, operation in path_item.items():
+            for method, content in path_item.items():
                 if method not in ['get', 'post', 'put', 'delete', 'patch']:
                     continue
-                action_name = operation.operationId or f"{method}_{path.replace('/', '_')}"
-                actions[action_name] = self._map_operation_to_action(path, method, operation)
+                print(f"Processing operation: {method} {path}")
+                action_name = content.summary.lower().replace(' ', '_') or f"{method}_{path.replace('/', '_')}"
+                actions[action_name] = self._map_operation_to_action(path, method, content)
         return actions
 
     def _map_operation_to_action(self, path: str, method: str, operation: YmlObj) -> dict:
@@ -165,7 +169,7 @@ class OasToApiIntegratorMapper:
 
 def main():
     # Define the input file path (relative to oas_specs directory)
-    input_file = 'ingram/api1.json'
+    input_file = 'cva/cva.yml'
 
     # Create the mapper and generate the configuration
     mapper = OasToApiIntegratorMapper(input_file)
