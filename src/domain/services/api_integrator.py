@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Union
 from src.domain.value_objects.yml_obj import YmlObj
 from src.domain.value_objects.api_response import ApiResponse
+import xmltodict
 
 
 class ApiIntegrator:
