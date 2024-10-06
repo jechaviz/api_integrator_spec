@@ -99,18 +99,22 @@ class OasToApiIntegratorMapper:
         }
 
     def _map_headers(self, operation: YmlObj) -> dict:
-        return {
+        headers = {
             param.name: f"{{{{headers.{param.name}}}}}"
             for param in operation.get('parameters', [])
             if param.get('in') == 'header'
         }
+        print(f"Mapped headers: {headers}")
+        return headers
 
     def _map_query_params(self, operation: YmlObj) -> dict:
-        return {
+        query_params = {
             param.name: f"{{{{params.{param.name}}}}}"
             for param in operation.get('parameters', [])
             if param.get('in') == 'query'
         }
+        print(f"Mapped query parameters: {query_params}")
+        return query_params
 
     def _map_request_body(self, operation: YmlObj) -> dict:
         request_body = operation.get('requestBody', {})
