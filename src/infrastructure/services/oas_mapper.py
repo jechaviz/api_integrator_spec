@@ -8,7 +8,7 @@ from src.domain.value_objects.yml_obj import YmlObj
 
 class OasToApiIntegratorMapper:
     def __init__(self, oas_file_path: str):
-        base_path = Path(__file__).parent.parent / 'oas_specs'
+        base_path = Path(__file__).parent.parent / 'oas'
         full_path = base_path / oas_file_path
         self.api_spec = self._load_oas(str(full_path))
 
@@ -175,7 +175,7 @@ class OasToApiIntegratorMapper:
 
 
 def main():
-    # Define the input file path (relative to oas_specs directory)
+    # Define the input file path (relative to oas directory)
     input_file = 'cva/cva.yml'
 
     # Create the mapper and generate the configuration
@@ -183,7 +183,7 @@ def main():
     config = mapper.map_to_api_integrator_config()
 
     # Generate the output file name
-    output_file = Path(__file__).parent / 'infrastructure/config' / (Path(input_file).stem + '_ai.yaml')
+    output_file = Path(__file__).parent.parent.parent / 'infrastructure/api_integrator' / (Path(input_file).stem + '_ai.yaml')
 
     # Ensure the output directory exists
     output_file.parent.mkdir(parents=True, exist_ok=True)
