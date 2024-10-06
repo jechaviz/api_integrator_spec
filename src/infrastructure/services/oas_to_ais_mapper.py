@@ -5,7 +5,7 @@ import snoop
 
 from src.domain.value_objects.yml_obj import YmlObj
 
-class OasToApiIntegratorMapper:
+class OasToApiIntegratorSpecificationMapper:
     def __init__(self, oas_file_path: str):
         full_path = Path(__file__).parent.parent / oas_file_path
         self.api_spec = self._load_oas(str(full_path))
@@ -176,19 +176,16 @@ class OasToApiIntegratorMapper:
 
 
 def main():
-    # Define the input file path (relative to infrastructure directory)
-    oas_path = 'specs/oas/cva.yml'
-    # Create the mapper and generate the configuration
-    mapper = OasToApiIntegratorMapper(oas_path)
+    # Paths (input relative to infrastructure directory)
+    input_path = 'specs/oas/cva.yml'
+    output_path = Path(__file__).parent.parent.parent / 'infrastructure/specs/api_integrator' / (
+            Path(input_path).stem + '_ai.yaml')
+
+    # Conversion process
+    mapper = OasToApiIntegratorSpecificationMapper(input_path)
     ais = mapper.oas_to_ais()
-
-    # Generate the output file name
-    ais_path = Path(__file__).parent.parent.parent / 'infrastructure/specs/api_integrator' / (Path(oas_path).stem + '_ai.yaml')
-
-    # Save the configuration to the output file
-    ais.save(str(ais_path))
-
-    print(f"API Integrator configuration has been saved to {ais_path}")
+    ais.save(str(output_path))
+    print(f"API Integrator configuration has been saved to {output_path}")
 
 
 if __name__ == '__main__':
