@@ -4,14 +4,14 @@ import yaml
 
 def main():
     # Define the input file path (relative to oas_specs directory)
-    input_file = 'supplier1/api1.json'
+    input_file = 'ingram/api1.json'
     
     # Create the mapper and generate the configuration
     mapper = OasToApiIntegratorMapper(input_file)
     config = mapper.map_to_api_integrator_config()
 
     # Generate the output file name
-    output_file = Path(__file__).parent / 'infrastructure' / 'config' / (Path(input_file).stem + '_ai.yaml')
+    output_file = Path(__file__).parent / 'infrastructure/config' / (Path(input_file).stem + '_ai.yaml')
 
     # Ensure the output directory exists
     output_file.parent.mkdir(parents=True, exist_ok=True)
