@@ -1,0 +1,900 @@
+openapi: 3.1.0
+info:
+ title: Documentación Oficial de API-CONNECT
+ version: '1.0.11'
+ description: >
+  Documentación oficial para realizar las implementaciones de los servicios API de CT-CONNECT donde se hara la integracion de nuestro catalogo a su tienda online.
+ contact:
+  name: Soporte CT-CONNECT
+  email: [email protected]
+
+servers:
+ - url: http://sandbox.ctonline.mx
+   description: Servidor Sandbox
+
+tags:
+  - name: Autenticación
+    description: Endpoints relacionados con la autenticación y generación de tokens.
+  - name: Articulos
+    description: Endpoints para obtener información sobre artículos, incluyendo listados, existencia, detalles y promociones.
+  - name: Orden de Compra
+    description: Endpoints para gestionar órdenes de compra, incluyendo solicitud, confirmación, envío de guías y consulta de estatus y detalles.
+  - name: Utilidades
+    description: Endpoints para obtener información adicional, incluyendo tipo de cambio, volumetria y consulta de series.
+
+paths:
+
+ /cliente/token:
+  post:
+   tags:
+    - Autenticación
+   summary: Generación de token
+   description: >
+    Se requiere solicitar integración a un representante CT para poder generar un token válido y vigente.
+   requestBody:
+    required: true
+    content:
+     application/json:
+      schema:
+       type: object
+       properties:
+        email:
+         type: string
+         description: Correo con el cual se registró como cliente CT
+        cliente:
+         type: string
+         description: Número de cliente CT
+        rfc:
+         type: string
+         description: RFC proporcionado en el registro como cliente CT
+      examples:
+       example-1:
+        value:
+         email: "[email protected]"
+         cliente: "HMO0000"
+         rfc: "XX10XX100X1XX01"
+   responses:
+    '200':
+     description: El Token ha sido generado satisfactoriamente
+     content:
+      application/json:
+       example:
+        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1ODZkNTM5MmY1ZmYwZjQ5NTcwOTk5ZjYiLCJhY2Nlc3MiOiJhdXRoIiwiaWF0IjoxNDgzNTU5OTM0fQ.lHoLBCLDYiM6jmgnxTdj0v5GGB8jkpiJtZF2Obyh9X4
+        time: 2023-11-23T18:30:02.046Z
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /existencia/promociones:
+  get:
+   tags:
+    - Articulos
+   summary: Listado de productos
+   description: >
+    Listado completo de artículos para la verificación de existencia, promociones y precio.
+   parameters:
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Listado de artículos generado correctamente.
+     content:
+      application/json:
+       example:
+        - codigo: "ACCBLC010"
+          precio: 6.14
+          moneda: "USD"
+          almacenes:
+           - 14A: 2
+             promocion:
+              precio: 5.37
+              vigente:
+               ini: "2019-01-19T07:00:00.000Z"
+               fin: "2019-02-01T07:00:00.000Z"
+           - 46A: 2
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '429':
+     description: Demasiadas solicitudes.
+     content:
+      application/json:
+       example:
+        error: "Demasiadas solicitudes"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /existencia/{codigo}:
+  get:
+   tags:
+    - Articulos
+   summary: Existencia por código
+   description: >
+    Verificar la existencia por artículo en almacenes solo puede ser realizado con el código y un token válido y vigente.
+   parameters:
+    - in: path
+      name: codigo
+      required: true
+      schema:
+       type: string
+      description: Clave CT del artículo a consultar
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Listado de Existencias por Artículos.
+     content:
+      application/json:
+       example:
+        "01A":
+         existencia: 2774
+        "02A":
+         existencia: 0
+        "03A":
+         existencia: 801
+        "04A":
+         existencia: 7
+        "05A":
+         existencia: 13
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /existencia/{codigo}/{almacen}:
+  get:
+   tags:
+    - Articulos
+   summary: Artículo por almacén
+   description: >
+    Verificar la existencia por artículo en un almacén solo puede ser realizado con el código y un token válido y vigente.
+   parameters:
+    - in: path
+      name: codigo
+      required: true
+      schema:
+       type: string
+      description: Clave CT del artículo a consultar
+    - in: path
+      name: almacen
+      schema:
+       type: string
+      description: Código de almacén a consultar
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Listado de Existencias de Artículo por Almacén.
+     content:
+      application/json:
+       example:
+        almacen: "01A"
+        existencia: 2774
+    '400':
+     description: Fallo en la búsqueda.
+     content:
+      application/json:
+       example:
+        error: "Fallo en la busqueda"
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /existencia/detalle/{codigo}/{almacen}:
+  get:
+   tags:
+    - Articulos
+   summary: Detalle por almacén
+   description: >
+    Verificar la existencia detallada por artículo en un almacén solo puede ser realizado con el código y un token válido y vigente.
+   parameters:
+    - in: path
+      name: codigo
+      required: true
+      schema:
+       type: string
+      description: Clave CT del artículo a consultar
+    - in: path
+      name: almacen
+      required: true
+      schema:
+       type: string
+      description: Código de almacén a consultar
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Detallado de Existencias de Artículo por Almacén
+     content:
+      application/json:
+       example:
+        - precio: 6.14
+          moneda: USD
+          tipoCambio: 20.5
+          existencia: 8
+          codigoSAT: 43202005
+          promocion:
+           - precio: 5.37
+             vigente:
+              ini: "2019-01-19T07:00:00.000Z"
+              fin: "2019-02-19T07:00:00.000Z"
+    '400':
+     description: Fallo en la búsqueda.
+    '401':
+     description: Usuario no autorizado.
+    '503':
+     description: Mantenimiento de los servicios
+
+ /existencia/{codigo}/TOTAL:
+  get:
+   tags:
+    - Articulos
+   summary: Total de artículo
+   description: >
+    Verificar la existencia Total de un artículo en todos los almacenes solo puede ser realizado con el código y un token válido y vigente.
+   parameters:
+    - in: path
+      name: codigo
+      required: true
+      schema:
+       type: string
+      description: Clave CT del artículo a consultar
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Existencia Total por Artículo
+     content:
+      application/json:
+       example:
+        existencia_total: 5696
+    '400':
+     description: Fallo en la búsqueda.
+    '401':
+     description: Usuario no autorizado.
+    '503':
+     description: Mantenimiento de los servicios
+
+ /existencia/promociones/{codigo}:
+  get:
+   tags:
+    - Articulos
+   summary: Promoción y precio por artículo
+   description: >
+    Verificar el artículo que tengan existencia, promoción y precio solo puede ser realizado con un código y un token válido y vigente.
+   parameters:
+    - in: path
+      name: codigo
+      required: true
+      schema:
+       type: string
+      description: Clave CT del artículo a consultar
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Listado de Existencias por Artículos junto con promociones
+     content:
+      application/json:
+       example:
+        - codigo: ACCBLC010
+          precio: 6.14
+          moneda: USD
+          almacenes:
+           - "14A": 2
+             promocion:
+              precio: 5.37
+              vigente:
+               ini: "2019-01-19T07:00:00.000Z"
+               fin: "2019-02-01T07:00:00.000Z"
+           - "46A": 2
+    '400':
+     description: Fallo en la búsqueda.
+    '401':
+     description: Usuario no autorizado.
+    '503':
+     description: Mantenimiento de los servicios
+
+ /pedido:
+  post:
+   tags:
+    - Orden de Compra
+   summary: Solicitar Pedido
+   description: >
+    Servicio para la petición de solicitud de un pedido, se requiere un token válido y vigente.
+   parameters:
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   requestBody:
+    required: true
+    content:
+     application/json:
+      schema:
+       type: object
+       properties:
+        idPedido:
+         type: integer
+         description: Número de referencia por parte del cliente.
+        almacen:
+         type: string
+         description: Código del almacén donde se va a tomar la existencia.
+        tipoPago:
+         type: string
+         description: Número que identifica el tipo de pago (99-Crédito CT).
+        cfdi:
+         type: string
+         description: Clave fiscal con la que se hara la facturación (G01 por defecto).
+        envio:
+         type: array
+         items:
+          type: object
+         description: Arreglo de objetos con los datos para realizar el envió.
+        producto:
+         type: array
+         items:
+          type: object
+         description: Arreglo de objetos con el detalle de cada producto del pedido.
+      examples:
+       example-1:
+        value:
+         idPedido: 1
+         almacen: "01A"
+         tipoPago: "99"
+         cfdi: "G01"
+         envio:
+          - nombre: "Nombre ejemplo"
+            direccion: "guerrero"
+            entreCalles: " "
+            noExterior: "164"
+            noInterior: "string"
+            colonia: "centro"
+            estado: "Sonora"
+            ciudad: "Hermosillo"
+            codigoPostal: 83000
+            telefono: 6622112233
+         producto:
+          - cantidad: 1
+            clave: "ACCMST4010"
+            precio: 54.35
+            moneda: "MXN"
+   responses:
+    '200':
+     description: Orden de compra realizada correctamente
+     content:
+      application/json:
+       example:
+        idPedido: 1
+        almacen: "01A"
+        tipoPago: "99"
+        envio:
+         - nombre: "Nombre ejemplo"
+           direccion: "guerrero"
+           entreCalles: " "
+           noExterior: "164"
+           noInterior: "string"
+           colonia: "centro"
+           estado: "Sonora"
+           ciudad: "Hermosillo"
+           codigoPostal: 83000
+           telefono: 6622112233
+        producto:
+         - cantidad: 1
+           clave: "ACCMST4010"
+           precio: 54.35
+           moneda: "MXN"
+        respuestaCT:
+          pedidoWeb: "W01-000001"
+          tipoDeCambio: 20.5
+          estatus: "Pendiente"
+          errores: []
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '408':
+     description: Tiempo de espera agotado.
+     content:
+      application/json:
+       example:
+        error: "Tiempo de espera agotado"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /pedido/confirmar:
+  post:
+   tags:
+    - Orden de Compra
+   summary: Confirmar pedido
+   description: >
+    Confirmar pedido solo puede ser realizado con el folio y un token válido y vigente.
+   parameters:
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   requestBody:
+    required: true
+    content:
+     application/json: {}
+   responses:
+    '200':
+     description: Orden de compra confirmada correctamente
+     content:
+      application/json:
+       example:
+        okCode: "2000"
+        okMessage: "¡Ok, se procesó satisfactoriamente!"
+        okReference: "Se ha confirmado el pedido"
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '410':
+     description: Error en la solicitud de Orden de Compra.
+     content:
+      application/json:
+       example:
+        error: "Error en la solicitud de Orden de Compra"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /pedido/guias:
+  post:
+   tags:
+    - Orden de Compra
+   summary: Enviar guías
+   description: >
+    Enviar guías solo puede ser realizado con un token válido y vigente.
+   parameters:
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   requestBody:
+    required: true
+    content:
+     application/json:
+      schema:
+       type: object
+       properties:
+        folio:
+         type: string
+         description: Folio de identificación de pedido.
+        guias:
+         type: array
+         items:
+          type: object
+         description: Array de objetos con las guías que se van asociar al pedido.
+      examples:
+       example-1:
+        value:
+         folio: "W01-000001"
+         guias:
+          - guia: "1012012012021021021021210210210210"
+            paqueteria: "estafeta"
+            archivo: "string"
+   responses:
+    '200':
+     description: Guías procesadas correctamente.
+     content:
+      application/json:
+       example:
+        okCode: "2000"
+        okMessage: "¡Ok, se procesó satisfactoriamente!"
+        okReference: "Guías recibidas, el pedido se encuentra en proceso de envió"
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '410':
+     description: Error en la solicitud de Orden de Compra.
+     content:
+      application/json:
+       example:
+        error: "Error en la solicitud de Orden de Compra"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /pedido/listar:
+  get:
+   tags:
+    - Orden de Compra
+   summary: Listar Pedidos
+   description: >
+    Listar pedidos solo puede ser realizado con un token válido y vigente.
+   parameters:
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Listado de órdenes de compra.
+     content:
+      application/json:
+       example:
+        - idPedido: 1
+          almacen: "01A"
+          tipoPago: "99"
+          envio:
+           - nombre: "Nombre ejemplo"
+             direccion: "guerrero"
+             entreCalles: " "
+             noExterior: "164"
+             noInterior: "string"
+             colonia: "centro"
+             estado: "Sonora"
+             ciudad: "Hermosillo"
+             codigoPostal: 83000
+             telefono: 6622112233
+          producto:
+           - cantidad: 1
+             clave: "ACCMST4010"
+             precio: 54.35
+             moneda: "MXN"
+          respuestaCT:
+           pedidoWeb: "W01-000001"
+           tipoDeCambio: 20.5
+           estatus: "Pendiente"
+           errores: []
+    '400':
+     description: Error en la solicitud de Orden de Compra.
+     content:
+      application/json:
+       example:
+        error: "Error en la solicitud de Orden de Compra"
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /pedido/estatus/{folio}:
+  get:
+   tags:
+    - Orden de Compra
+   summary: Consultar Estatus
+   description: >
+    Consultar el estatus de un pedido solo puede ser realizado con el folio y un token válido y vigente.
+   parameters:
+    - in: path
+      name: folio
+      required: true
+      schema:
+       type: string
+      description: Folio de pedido CT
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Estatus obtenido satisfactoriamente.
+     content:
+      application/json:
+       example:
+        status: "Confirmado"
+        folio: "W01-000001"
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '404':
+     description: Error en la solicitud de Orden de Compra.
+     content:
+      application/json:
+       example:
+        error: "Error en la solicitud de Orden de Compra"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /pedido/detalle/{folio}:
+  get:
+   tags:
+    - Orden de Compra
+   summary: Consultar Detalle
+   description: >
+    Consultar el detalle de un pedido solo puede ser realizado con el folio y un token válido y vigente.
+   parameters:
+    - in: path
+      name: folio
+      required: true
+      schema:
+       type: string
+      description: Folio de pedido CT
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Detalle de pedido obtenido correctamente
+     content:
+      application/json:
+       example:
+        idPedido: 1
+        almacen: "01A"
+        tipoPago: "99"
+        envio:
+         - nombre: "Nombre ejemplo"
+           direccion: "guerrero"
+           entreCalles: " "
+           noExterior: "164"
+           noInterior: "string"
+           colonia: "centro"
+           estado: "Sonora"
+           ciudad: "Hermosillo"
+           codigoPostal: 83000
+           telefono: 6622112233
+        producto:
+         - cantidad: 1
+           clave: "ACCMST4010"
+           precio: 54.35
+           moneda: "MXN"
+        respuestaCT:
+         pedidoWeb: "W01-000001"
+         tipoDeCambio: 20.5
+         estatus: "Pendiente"
+         errores: []
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '404':
+     description: Error en la solicitud de Orden de Compra.
+     content:
+      application/json:
+       example:
+        error: "Error en la solicitud de Orden de Compra"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /pedido/tipoCambio:
+  get:
+   tags:
+    - Utilidades
+   summary: Tipo de cambio
+   description: >
+    Obtener el tipo de cambio solo puede ser realizado con un token válido y vigente.
+   parameters:
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Tipo de cambio obtenido satisfactoriamente.
+     content:
+      application/json:
+       example:
+        tipoCambio: 21.1
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       example:
+        error: "Usuario no autorizado"
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       example:
+        error: "Mantenimiento de los servicios"
+
+ /paqueteria/volumetria/{codigo}:
+  get:
+   tags:
+    - Utilidades
+   summary: Volumetría
+   description: >
+    Consultar las dimensiones de un producto solo puede ser realizado con el código y un token válido y vigente.
+   parameters:
+    - in: path
+      name: codigo
+      required: true
+      schema:
+       type: string
+      description: Clave CT del artículo
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Información volumétrica obtenida satisfactoriamente.
+     content:
+      application/json:
+       examples:
+        example-200:
+         summary: Ejemplo de respuesta 200
+         value:
+          peso: 5.5
+          largo: 40
+          alto: 28.9
+          ancho: 18
+          UPC: 97855070081
+          EAN: 17825670088
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       examples:
+        example-401:
+         summary: Ejemplo de respuesta 401
+         value:
+          error: Usuario no autorizado
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       examples:
+        example-503:
+         summary: Ejemplo de respuesta 503
+         value:
+          error: Mantenimiento de los servicios
+
+ /series/factura/{factura}:
+  get:
+   tags:
+    - Utilidades
+   summary: Consultar Series
+   description: >
+    Consultar las series asociadas a una factura requiere un token válido y vigente.
+   parameters:
+    - in: path
+      name: factura
+      required: true
+      schema:
+       type: string
+      description: Folio de la factura
+    - in: header
+      name: x-auth
+      required: true
+      schema:
+       type: string
+      description: Token de autorización
+   responses:
+    '200':
+     description: Información de las series obtenida satisfactoriamente.
+     content:
+      application/json:
+       examples:
+        example-200:
+         summary: Ejemplo de respuesta 200
+         value:
+          - articulo: MONSMG1140
+            cantidad: 1
+            series: [ 123456789 ]
+          - articulo: MONNCB060
+            cantidad: 2
+            series: [ 987654321, 1122334455 ]
+    '401':
+     description: Usuario no autorizado.
+     content:
+      application/json:
+       examples:
+        example-401:
+         summary: Ejemplo de respuesta 401
+         value:
+          error: Usuario no autorizado
+    '503':
+     description: Mantenimiento de los servicios
+     content:
+      application/json:
+       examples:
+        example-503:
+         summary: Ejemplo de respuesta 503
+         value:
+          error: Mantenimiento de los servicios

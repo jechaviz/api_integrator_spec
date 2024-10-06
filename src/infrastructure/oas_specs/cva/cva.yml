@@ -1,0 +1,600 @@
+openapi: 3.1.0
+info:
+  title: CVA API Documentation
+  description: API for accessing real-time inventory, prices, promotions, product descriptions, and images.
+  version: '1.0.0 - 2024-09-17'
+  contact:
+    name: CVA Support
+    email: support@grupocva.com
+
+servers:
+  - url: https://www.grupocva.com
+    description: Production server
+
+tags:
+  - name: Products
+    description: Endpoints related to product details
+  - name: Images
+    description: Endpoints related to retrieving images
+  - name: Compatibility
+    description: Endpoints related to product compatibility
+  - name: Catalogs
+    description: Endpoints related to various catalogs
+  - name: Orders
+    description: Endpoints related to order creation
+
+paths:
+  /catalogo_clientes_xml/lista_precios.xml:
+    get:
+      tags:
+        - Products
+      summary: Get product details
+      description: Retrieve product details based on various parameters.
+      parameters:
+        - name: cliente
+          in: query
+          required: true
+          description: Número de cliente
+          schema:
+            type: integer
+          example: 23534
+        - name: codigo
+          in: query
+          required: false
+          description: Part number
+          schema:
+            type: string
+          example: WD5000AZLX
+        - name: clave
+          in: query
+          required: false
+          description: CVA key
+          schema:
+            type: string
+          example: HD-1014
+        - name: marca
+          in: query
+          required: false
+          description: Brand name
+          schema:
+            type: string
+          example: ACTECK
+        - name: grupo
+          in: query
+          required: false
+          description: Group name
+          schema:
+            type: string
+          example: BOCINAS
+        - name: grupo2
+          in: query
+          required: false
+          description: Secondary group name
+          schema:
+            type: string
+          example: 268
+        - name: desc
+          in: query
+          required: false
+          description: Generic search string
+          schema:
+            type: string
+          example: GAMING
+        - name: porcentaje
+          in: query
+          required: false
+          description: Utility percentage
+          schema:
+            type: number
+          example: 16
+        - name: sucursales
+          in: query
+          required: false
+          description: Show stock availability per branch if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: dt
+          in: query
+          required: false
+          description: Include technical description if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: dc
+          in: query
+          required: false
+          description: Include commercial description if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: exist
+          in: query
+          required: false
+          description: >
+            Define the scope of product availability:
+            1: show available products in the branch,
+            2: show available products in the distribution center,
+            3: show available products in branch and distribution center,
+            4: show available products in branch or distribution center.
+          schema:
+            type: string
+          example: 1
+        - name: promos
+          in: query
+          required: false
+          description: Include active promotions if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: TipoProducto
+          in: query
+          required: false
+          description: Include product type information (product or package) if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: MonedaPesos
+          in: query
+          required: false
+          description: Convert prices to MXN if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: TipoCompra
+          in: query
+          required: false
+          description: Include special purchase prices if equal to 1 (if done in ME platform)
+          schema:
+            type: integer
+          example: 1
+        - name: tc
+          in: query
+          required: false
+          description: Show currency exchange rate and last update if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: TotalSuc
+          in: query
+          required: false
+          description: Return the sum of all existences if sucursales=1
+          schema:
+            type: integer
+          example: 1
+        - name: tipo
+          in: query
+          required: false
+          description: Return product type information if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: depto
+          in: query
+          required: false
+          description: |
+            Return the type of department and its id that the product belongs to if equal to 1
+            - A: Product with high sales. The products have high and regular existence in the branches.
+            - B: Product with medium sales. The products have medium existence and their replenishment is regular.
+            - C: Product with low sales. This product maintains a low inventory.
+            - Por salir: It is no longer supplied and will be limited to the current existence.
+            - SPCD: There is existence in the distribution center.
+            - SPF: Products under order.
+          schema:
+            type: integer
+          example: 1
+        - name: subgpo
+          in: query
+          required: false
+          description: Include sub-group information if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: trans
+          in: query
+          required: false
+          description: Show quantity in transit to the branch if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: dimen
+          in: query
+          required: false
+          description: Return product dimensions in meters and weight in kilos if equal to 1
+          schema:
+            type: integer
+          example: 1
+        - name: Solucion
+          in: query
+          required: false
+          description: Filter the products by solution (ID of the solution)
+          schema:
+            type: integer
+          example: 21
+        - name: upc
+          in: query
+          required: false
+          description: Return the UPC of the product if equal to 1
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Product by part number
+              value: |
+                <articulos>
+                  <item>
+                    <clave>HD-1014</clave>
+                    <codigo_fabricante>WD5000AZLX</codigo_fabricante>
+                    <descripcion>DD INTERNO WD BLUE 3.5 500GB SATA3 6GB/S 32MB 7200RPM P/PC COMP BASICO</descripcion>
+                    <principal>ALMACENAMIENTO</principal>
+                    <grupo>DISCOS DUROS</grupo>
+                    <marca>WD - WESTERN DIGITAL</marca>
+                    <garantia>2 ANIOS</garantia>
+                    <clase>AC</clase>
+                    <disponible>5</disponible>
+                    <precio>39.14</precio>
+                    <moneda>Dolares</moneda>
+                    <ficha_tecnica></ficha_tecnica>
+                    <ficha_comercial></ficha_comercial>
+                    <imagen>http://www.grupocva.com/detalle_articulo/9678446.jpg</imagen>
+                    <disponibleCD>0</disponibleCD>
+                    <!-- Continue with other items if necessary -->
+                  </item>
+                </articulos>
+
+  /catalogo_clientes_xml/imagenes_alta.xml:
+    get:
+      tags:
+        - Images
+      summary: Get high-resolution images
+      description: Retrieve high-resolution images for a product.
+      parameters:
+        - name: cliente
+          in: query
+          required: true
+          description: Client number
+          schema:
+            type: integer
+          example: 23534
+        - name: clave
+          in: query
+          required: true
+          description: Product key
+          schema:
+            type: string
+          example: RELOJ-27
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - High-resolution images
+              value: |
+                <producto>
+                  <imagen>http://www.grupocva.com/detalle_articulo/img_large.php?id=108475</imagen>
+                  <imagen>http://www.grupocva.com/detalle_articulo/img_large.php?id=108476</imagen>
+                  <imagen>http://www.grupocva.com/detalle_articulo/img_large.php?id=108477</imagen>
+                </producto>
+
+  /catalogo_clientes_xml/productos_compatibles.xml:
+    get:
+      tags:
+        - Compatibility
+      summary: Get compatible products
+      description: Retrieve a list of compatible products.
+      parameters:
+        - name: clave
+          in: query
+          required: true
+          description: Product key
+          schema:
+            type: string
+          example: RELOJ-27
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Compatible products
+              value: |
+                <productos>
+                  <producto>
+                    <clave>http://www.grupocva.com/detalle_articulo/img_large.php?id=108476</clave>
+                    <descripcion>Compatible Product 1</descripcion>
+                  </producto>
+                  <producto>
+                    <clave>http://www.grupocva.com/detalle_articulo/img_large.php?id=108477</clave>
+                    <descripcion>Compatible Product 2</descripcion>
+                  </producto>
+                </productos>
+
+  /catalogo_clientes_xml/marcas.xml:
+    get:
+      tags:
+        - Catalogs
+      summary: Get catalog of brands
+      description: Retrieve a catalog of brands.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Catalog of brands
+              value: |
+                <marcas>
+                  <marca>
+                    <clave>ACTECK</clave>
+                    <descripcion>Acteck</descripcion>
+                  </marca>
+                  <marca>
+                    <clave>WD</clave>
+                    <descripcion>Western Digital</descripcion>
+                  </marca>
+                  <!-- More brand items -->
+                </marcas>
+
+  /catalogo_clientes_xml/grupos.xml:
+    get:
+      tags:
+        - Catalogs
+      summary: Get catalog of groups
+      description: Retrieve a catalog of groups.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Catalog of groups
+              value: |
+                <grupos>
+                  <grupo>
+                    <clave>BOCINAS</clave>
+                    <descripcion>Bocinas</descripcion>
+                  </grupo>
+                  <grupo>
+                    <clave>GABINETES</clave>
+                    <descripcion>Gabinetes</descripcion>
+                  </grupo>
+                  <!-- More group items -->
+                </grupos>
+
+  /catalogo_clientes_xml/marcas2.xml:
+    get:
+      tags:
+        - Catalogs
+      summary: Get catalog of brands 2
+      description: Retrieve a catalog of brands for specific use cases.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Catalog of brands 2
+              value: |
+                <marcas2>
+                  <marca>
+                    <clave>ACTECK</clave>
+                    <descripcion>Acteck Clave</descripcion>
+                  </marca>
+                  <marca>
+                    <clave>WD</clave>
+                    <descripcion>Western Digital Clave</descripcion>
+                  </marca>
+                  <!-- More brand items -->
+                </marcas2>
+
+  /catalogo_clientes_xml/grupos2.xml:
+    get:
+      tags:
+        - Catalogs
+      summary: Get catalog of groups 2
+      description: Retrieve a catalog of groups for specific use cases.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Catalog of groups 2
+              value: |
+                <grupos2>
+                  <grupo>
+                    <clave>BOCINAS</clave>
+                    <descripcion>Bocinas Clave</descripcion>
+                  </grupo>
+                  <grupo>
+                    <clave>GABINETES</clave>
+                    <descripcion>Gabinetes Clave</descripcion>
+                  </grupo>
+                  <!-- More group items -->
+                </grupos2>
+
+  /catalogo_clientes_xml/soluciones.xml:
+    get:
+      tags:
+        - Catalogs
+      summary: Get catalog of solutions
+      description: Retrieve a catalog of solutions.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Catalog of solutions
+              value: |
+                <soluciones>
+                  <solucion>
+                    <clave>21</clave>
+                    <descripcion>Gamer</descripcion>
+                  </solucion>
+                  <!-- More solution items -->
+                </soluciones>
+
+  /catalogo_clientes_xml/ciudad.xml:
+    get:
+      tags:
+        - Catalogs
+      summary: Get catalog of cities
+      description: Retrieve a catalog of cities.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Catalog of cities
+              value: |
+                <ciudades>
+                  <ciudad>
+                    <clave>1</clave>
+                    <descripcion>Guadalajara</descripcion>
+                  </ciudad>
+                  <ciudad>
+                    <clave>2</clave>
+                    <descripcion>Mexico City</descripcion>
+                  </ciudad>
+                  <!-- More city items -->
+                </ciudades>
+
+  /catalogo_clientes_xml/sucursales.xml:
+    get:
+      tags:
+        - Catalogs
+      summary: Get catalog of branches
+      description: Retrieve a catalog of branches.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Catalog of branches
+              value: |
+                <sucursales>
+                  <sucursal>
+                    <clave>1</clave>
+                    <nombre>Branch 1</nombre>
+                  </sucursal>
+                  <sucursal>
+                    <clave>2</clave>
+                    <nombre>Branch 2</nombre>
+                  </sucursal>
+                  <!-- More branch items -->
+                </sucursales>
+
+  /catalogo_clientes_xml/paqueteria.xml:
+    get:
+      tags:
+        - Catalogs
+      summary: Get catalog of courier services
+      description: Retrieve a catalog of courier services.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              summary: Example response - Catalog of courier services
+              value: |
+                <paqueterias>
+                  <paqueteria>
+                    <clave>SF</clave>
+                    <descripcion>Sin Flete</descripcion>
+                  </paqueteria>
+                  <paqueteria>
+                    <clave>FF</clave>
+                    <descripcion>Flete Cobrado</descripcion>
+                  </paqueteria>
+                  <!-- More courier items -->
+                </paqueterias>
+
+  /pedidos_web/pedidos_ws_cva.php:
+    post:
+      tags:
+        - Orders
+      summary: Create an order
+      description: Create an order using SOAP web service
+      parameters:
+        - name: Usuario
+          in: query
+          required: true
+          description: Username (same as in the ME platform)
+          schema:
+            type: string
+          example: your_username
+        - name: PWD
+          in: query
+          required: true
+          description: Password (same as in the ME platform)
+          schema:
+            type: string
+          example: your_password
+        - name: XMLOC
+          in: query
+          required: true
+          description: XML string containing the order details
+          schema:
+            type: string
+          example: '<PEDIDO><NumOC>ORDEN_001</NumOC><Paqueteria>0</Paqueteria><CodigoSucursal>1</CodigoSucursal></PEDIDO>'
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/xml:
+              summary: Example response - Order created
+              value: |
+                <?xml version="1.0" encoding="ISO-8859-1"?>
+                <SOAP-ENV:Envelope SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/">
+                  <SOAP-ENV:Body>
+                    <ns1:PedidoWebResponse xmlns:ns1="urn:PedidoWebwsdl#PedidoWeb">
+                      <error xsi:type="xsd:string"></error>
+                      <estado xsi:type="xsd:string">AFECTADO</estado>
+                      <pedido xsi:type="xsd:string">NGB-500204</pedido>
+                      <total xsi:type="xsd:string">70.01</total>
+                      <agentemail xsi:type="xsd:string">gjmiranda@grupocva.com</agentemail>
+                      <almacenmail xsi:type="xsd:string">valenzuelaj@grupocva.com</almacenmail>
+                    </ns1:PedidoWebResponse>
+                  </SOAP-ENV:Body>
+                </SOAP-ENV:Envelope>
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        clave:
+          type: string
+          description: CVA key
+        codigo_fabricante:
+          type: string
+          description: Manufacturer code
+        descripcion:
+          type: string
+          description: Product description
+        principal:
+          type: string
+          description: Main category
+        grupo:
+          type: string
+          description: Product group
+        marca:
+          type: string
+          description: Brand
+        garantia:
+          type: string
+          description: Warranty period
+        clase:
+          type: string
+          description: Product class
+        disponible:
+          type: integer
+          description: Available stock
+        precio:
+          type: number
+          description: Price
+        moneda:
+          type: string
+          description: Currency
+        ficha_tecnica:
+          type: string
+          description: Technical
