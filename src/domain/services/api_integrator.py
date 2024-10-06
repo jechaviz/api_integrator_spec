@@ -80,7 +80,10 @@ class ApiIntegrator:
     logging.debug(f"Body: {body}")
     logging.debug(f"Query: {query}")
 
-    response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query.to_dict())
+    # Remove None values from query parameters
+    query_dict = {k: v for k, v in query.to_dict().items() if v is not None}
+
+    response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
     api_response = ApiResponse(response)
     params['response'] = api_response
     self.latest_response = api_response
