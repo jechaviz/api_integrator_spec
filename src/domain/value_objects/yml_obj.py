@@ -6,7 +6,17 @@ class YmlObj:
         self._data = data
 
     def to_dict(self):
-        return self._data
+        return self._recursive_to_dict(self._data)
+
+    def _recursive_to_dict(self, data):
+        if isinstance(data, dict):
+            return {k: self._recursive_to_dict(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._recursive_to_dict(item) for item in data]
+        elif isinstance(data, YmlObj):
+            return self._recursive_to_dict(data._data)
+        else:
+            return data
 
     def __getattr__(self, key):
         if key in self._data:
@@ -106,12 +116,15 @@ class YmlObj:
             raise TypeError("This YmlObj does not support update")
 
     def save(self, file_path: str):
-        class OrderedDumper(yaml.Dumper):
+        class OrderedDumper(yaml.SafeDumper):
+            def ignore_aliases(self, data):
+                return True
+
             def represent_mapping(self, tag, mapping, flow_style=None):
-                return yaml.Dumper.represent_mapping(self, tag, mapping, flow_style)
+                return yaml.SafeDumper.represent_mapping(self, tag, mapping, flow_style)
 
         output_file = Path(file_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(output_file, 'w') as f:
-            yaml.dump(self.to_dict(), f, Dumper=OrderedDumper, sort_keys=False)
+            yaml.dump(self.to_dict(), f, Dumper=OrderedDumper, sort_keys=False, default_flow_style=False)
