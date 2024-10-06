@@ -157,9 +157,15 @@ class OasToApiIntegratorSpecificationMapper:
         }
 
         # Add sample response handling
-        if response_data.has('content') and response_data.content.has('application/json'):
-            if response_data.content['application/json'].has('example'):
-                response['performs'].extend(self._create_sample_response_performs(response_data.content['application/json'].example))
+        if response_data.has('content'):
+            content = response_data.content
+            if content.has('application/json'):
+                if content['application/json'].has('example'):
+                    response['performs'].extend(self._create_sample_response_performs(content['application/json'].example, 'json'))
+            elif content.has('application/xml') or content.has('text/xml'):
+                xml_content = content.get('application/xml') or content.get('text/xml')
+                if xml_content and xml_content.has('example'):
+                    response['performs'].extend(self._create_sample_response_performs(xml_content.example, 'xml'))
 
         return response
 
@@ -181,33 +187,40 @@ class OasToApiIntegratorSpecificationMapper:
             }
         }
 
-    def _create_sample_response_performs(self, example: dict) -> list:
+    def _create_sample_response_performs(self, example: Union[dict, str], content_type: str) -> list:
         performs = []
         
         # Log the sample response
         performs.append({
             'perform': {
                 'action': 'log.info',
-                'data': 'Sample response received'
+                'data': f'Sample {content_type} response received'
             }
         })
 
         # Create a perform action to send the sample response to my_app_server
-        sample_response_body = self._create_sample_response_body(example)
+        sample_response_body = self._create_sample_response_body(example, content_type)
         performs.append({
             'perform': {
                 'action': 'http.post',
                 'data': {
                     'path': '{{my_app_server}}/my_endpoint',
-                    'body': sample_response_body
+                    'body': sample_response_body,
+                    'headers': {
+                        'Content-Type': f'application/{content_type}'
+                    }
                 }
             }
         })
 
         return performs
 
-    def _create_sample_response_body(self, example: dict) -> dict:
-        return {key: f'{{{{response.body.{key}}}}}' for key in example.keys()}
+    def _create_sample_response_body(self, example: Union[dict, str], content_type: str) -> Union[dict, str]:
+        if content_type == 'json':
+            return {key: f'{{{{response.json.{key}}}}}' for key in example.keys()}
+        elif content_type == 'xml':
+            # For XML, we'll return the entire response body as a string
+            return '{{response.body}}'
 
 
 def main():

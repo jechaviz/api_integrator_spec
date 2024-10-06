@@ -4,6 +4,7 @@ import json
 import re
 import requests
 import logging
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, Any, List, Union
 from src.domain.value_objects.yml_obj import YmlObj
@@ -165,6 +166,8 @@ class ApiIntegrator:
     value = self.get_value(key, params)
     if isinstance(value, dict):
       return json.dumps(value)
+    elif isinstance(value, ET.Element):
+      return ET.tostring(value, encoding='unicode')
     return str(value)
 
   def get_value(self, key: str, params: YmlObj) -> Any:
