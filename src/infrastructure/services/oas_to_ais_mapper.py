@@ -1,3 +1,5 @@
+from typing import Union
+
 import yaml
 from pathlib import Path
 
