@@ -1,5 +1,7 @@
-import requests
 import json
+import requests
+import xml.etree.ElementTree as ET
+import xmltodict
 
 class ApiResponse:
     def __init__(self, response: requests.Response):
@@ -11,10 +13,23 @@ class ApiResponse:
         self.encoding = response.encoding
         self.cookies = response.cookies
         self.body = response.text
-        try:
-            self.json = response.json()
-        except json.JSONDecodeError:
-            self.json = None
+        self.json = None
+        self.xml = None
+        self._parse_content()
+
+    def _parse_content(self):
+        content_type = self.headers.get('Content-Type', '').lower()
+        if 'application/json' in content_type:
+            try:
+                self.json = self.response.json()
+            except json.JSONDecodeError:
+                pass
+        elif 'application/xml' in content_type or 'text/xml' in content_type:
+            try:
+                self.xml = ET.fromstring(self.body)
+                self.json = xmltodict.parse(self.body)
+            except ET.ParseError:
+                pass
 
     def __getattr__(self, name: str):
         return getattr(self.response, name)

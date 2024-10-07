@@ -30,7 +30,7 @@ actions:
     description: Retrieve product details based on various parameters.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/lista_precios.xml'
           headers: {}
@@ -66,10 +66,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_high-resolution_images:
@@ -78,7 +78,7 @@ actions:
     description: Retrieve high-resolution images for a product.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/imagenes_alta.xml'
           headers: {}
@@ -91,10 +91,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_compatible_products:
@@ -103,7 +103,7 @@ actions:
     description: Retrieve a list of compatible products.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/productos_compatibles.xml'
           headers: {}
@@ -115,10 +115,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_catalog_of_brands:
@@ -127,7 +127,7 @@ actions:
     description: Retrieve a catalog of brands.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/marcas.xml'
           headers: {}
@@ -138,10 +138,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_catalog_of_groups:
@@ -150,7 +150,7 @@ actions:
     description: Retrieve a catalog of groups.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/grupos.xml'
           headers: {}
@@ -161,10 +161,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_catalog_of_brands_2:
@@ -173,7 +173,7 @@ actions:
     description: Retrieve a catalog of brands for specific use cases.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/marcas2.xml'
           headers: {}
@@ -184,10 +184,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_catalog_of_groups_2:
@@ -196,7 +196,7 @@ actions:
     description: Retrieve a catalog of groups for specific use cases.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/grupos2.xml'
           headers: {}
@@ -207,10 +207,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_catalog_of_solutions:
@@ -219,7 +219,7 @@ actions:
     description: Retrieve a catalog of solutions.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/soluciones.xml'
           headers: {}
@@ -230,10 +230,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_catalog_of_cities:
@@ -242,7 +242,7 @@ actions:
     description: Retrieve a catalog of cities.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/ciudad.xml'
           headers: {}
@@ -253,10 +253,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_catalog_of_branches:
@@ -265,7 +265,7 @@ actions:
     description: Retrieve a catalog of branches.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/sucursales.xml'
           headers: {}
@@ -276,10 +276,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   get_catalog_of_courier_services:
@@ -288,7 +288,7 @@ actions:
     description: Retrieve a catalog of courier services.
     performs:
     - perform:
-        a: http.get
+        action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/paqueteria.xml'
           headers: {}
@@ -299,10 +299,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
   create_an_order:
@@ -311,7 +311,7 @@ actions:
     description: Create an order using SOAP web service
     performs:
     - perform:
-        a: http.post
+        action: http.post
         data:
           path: '{{supplier_server.url}}/pedidos_web/pedidos_ws_cva.php'
           headers: {}
@@ -325,10 +325,10 @@ actions:
           code: 200
         performs:
         - perform:
-            a: log.info
+            action: log.info
             data: 'Response: {{response.body}}'
         - perform:
-            a: vars.set
+            action: vars.set
             data:
               last_response: '{{response.body}}'
 vars:

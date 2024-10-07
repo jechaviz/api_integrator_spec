@@ -162,12 +162,13 @@ class OasToApiIntegratorSpecificationMapper:
         if response_data.has('content'):
             content = response_data.content
             if content.has('application/json'):
-                if content['application/json'].has('example'):
-                    response['performs'].extend(self._create_sample_response_performs(content['application/json'].example, 'json'))
+                json_content = content['application/json']
+                if json_content.has('schema'):
+                    response['performs'].extend(self._create_sample_response_performs(json_content.schema, 'json'))
             elif content.has('application/xml') or content.has('text/xml'):
                 xml_content = content.get('application/xml') or content.get('text/xml')
-                if xml_content and xml_content.has('example'):
-                    response['performs'].extend(self._create_sample_response_performs(xml_content.example, 'xml'))
+                if xml_content and xml_content.has('schema'):
+                    response['performs'].extend(self._create_sample_response_performs(xml_content.schema, 'xml'))
 
         return response
 
@@ -189,9 +190,9 @@ class OasToApiIntegratorSpecificationMapper:
             }
         }
 
-    def _create_sample_response_performs(self, example: Union[dict, str], content_type: str) -> list:
+    def _create_sample_response_performs(self, schema: YmlObj, content_type: str) -> list:
         performs = []
-        
+
         # Log the sample response
         performs.append({
             'perform': {
@@ -201,47 +202,49 @@ class OasToApiIntegratorSpecificationMapper:
         })
 
         # Create a perform action to send the sample response to my_app_server
-        sample_response_body = self._create_sample_response_body(example, content_type)
-        performs.append({
-            'perform': {
-                'action': 'http.post',
-                'type': 'bulk',
-                'wrapper': 'item',
-                'data': {
-                    'url': '{{my_app_server.url}}/items',
-                    'headers': {
-                        'Authorization': 'Bearer {{my_app_api_token}}',
-                        'Content-Type': 'application/json'
-                    },
-                    'body': sample_response_body
+        sample_response_body = self._create_sample_response_body(schema, content_type)
+        if sample_response_body:
+            performs.append({
+                'perform': {
+                    'action': 'http.post',
+                    'type': 'bulk',
+                    'wrapper': 'item',
+                    'data': {
+                        'url': '{{my_app_server.url}}/items',
+                        'headers': {
+                        },
+                        'body': sample_response_body
+                    }
                 }
-            }
-        })
+            })
 
         return performs
 
-    def _create_sample_response_body(self, example: Union[dict, str], content_type: str) -> Union[dict, str]:
+    def _create_sample_response_body(self, schema: YmlObj, content_type: str) -> Union[dict, str]:
         if content_type == 'json':
-            return {key: f'{{{{response.json.{key}}}}}' for key in example.keys()}
+            return self._create_json_response_body(schema)
         elif content_type == 'xml':
-            # For XML, we'll create a mapping for each field
-            return {
-                'clave': '{{response.items[].clave}}',
-                'codigo_fabricante': '{{response.items[].codigo_fabricante}}',
-                'descripcion': '{{response.items[].descripcion}}',
-                'principal': '{{response.items[].principal}}',
-                'grupo': '{{response.items[].grupo}}',
-                'marca': '{{response.items[].marca}}',
-                'garantia': '{{response.items[].garantia}}',
-                'clase': '{{response.items[].clase}}',
-                'disponible': '{{response.items[].disponible}}',
-                'precio': '{{response.items[].precio}}',
-                'moneda': '{{response.items[].moneda}}',
-                'ficha_tecnica': '{{response.items[].ficha_tecnica}}',
-                'ficha_comercial': '{{response.items[].ficha_comercial}}',
-                'imagen': '{{response.items[].imagen}}',
-                'disponibleCD': '{{response.items[].disponibleCD}}'
-            }
+            return self._create_xml_response_body(schema)
+        else:
+            return {}
+
+    def _create_json_response_body(self, schema: YmlObj) -> dict:
+        if schema.get('type') == 'object':
+            return {prop: f'{{{{response.json.{prop}}}}}' for prop in schema.get('properties', {}).keys()}
+        elif schema.get('type') == 'array':
+            items_schema = schema.get('items', {})
+            if items_schema.get('type') == 'object':
+                return [{prop: f'{{{{response.json[].{prop}}}}}' for prop in items_schema.get('properties', {}).keys()}]
+        return {}
+
+    def _create_xml_response_body(self, schema: YmlObj) -> dict:
+        if schema.get('type') == 'object':
+            return {prop: f'{{{{response.xml.{prop}}}}}' for prop in schema.get('properties', {}).keys()}
+        elif schema.get('type') == 'array':
+            items_schema = schema.get('items', {})
+            if items_schema.get('type') == 'object':
+                return [{prop: f'{{{{response.xml[].{prop}}}}}' for prop in items_schema.get('properties', {}).keys()}]
+        return {}
 
 
 def main():

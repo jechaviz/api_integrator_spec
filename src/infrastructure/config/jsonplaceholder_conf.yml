@@ -121,4 +121,5 @@ vars:
 constants:
   retry_trials: 3
 
-my_app_server: http://localhost:8000
+my_app_server:
+  url: http://localhost:8000
