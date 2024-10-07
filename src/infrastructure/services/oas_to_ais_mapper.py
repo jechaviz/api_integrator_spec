@@ -205,12 +205,15 @@ class OasToApiIntegratorSpecificationMapper:
         performs.append({
             'perform': {
                 'action': 'http.post',
+                'type': 'bulk',
+                'wrapper': 'item',
                 'data': {
-                    'path': '{{my_app_server}}/my_endpoint',
-                    'body': sample_response_body,
+                    'url': '{{my_app_server.url}}/items',
                     'headers': {
-                        'Content-Type': f'application/{content_type}'
-                    }
+                        'Authorization': 'Bearer {{my_app_api_token}}',
+                        'Content-Type': 'application/json'
+                    },
+                    'body': sample_response_body
                 }
             }
         })
@@ -221,8 +224,24 @@ class OasToApiIntegratorSpecificationMapper:
         if content_type == 'json':
             return {key: f'{{{{response.json.{key}}}}}' for key in example.keys()}
         elif content_type == 'xml':
-            # For XML, we'll return the entire response body as a string
-            return '{{response.body}}'
+            # For XML, we'll create a mapping for each field
+            return {
+                'clave': '{{response.items[].clave}}',
+                'codigo_fabricante': '{{response.items[].codigo_fabricante}}',
+                'descripcion': '{{response.items[].descripcion}}',
+                'principal': '{{response.items[].principal}}',
+                'grupo': '{{response.items[].grupo}}',
+                'marca': '{{response.items[].marca}}',
+                'garantia': '{{response.items[].garantia}}',
+                'clase': '{{response.items[].clase}}',
+                'disponible': '{{response.items[].disponible}}',
+                'precio': '{{response.items[].precio}}',
+                'moneda': '{{response.items[].moneda}}',
+                'ficha_tecnica': '{{response.items[].ficha_tecnica}}',
+                'ficha_comercial': '{{response.items[].ficha_comercial}}',
+                'imagen': '{{response.items[].imagen}}',
+                'disponibleCD': '{{response.items[].disponibleCD}}'
+            }
 
 
 def main():

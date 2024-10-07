@@ -100,29 +100,43 @@ class ApiIntegrator:
 
   def _handle_http(self, command: str, data: YmlObj, params: YmlObj):
     method = command.split('.')[1].upper()
-    endpoint = data.get('path', '')
+    endpoint = data.get('path', '') or data.get('url', '')
     url = self.render_template(endpoint, params)
     headers = YmlObj({k: self.render_template(v, params) for k, v in data.get('headers', YmlObj({})).items()})
     body_data = data.get('body', YmlObj({}))
-    body = self.render_template(json.dumps(body_data.to_dict()), params)
     query = YmlObj({k: self.render_template(v, params) for k, v in data.get('query', YmlObj({})).items()})
 
     logging.debug(f"HTTP Request: {method} {url}")
     logging.debug(f"Headers: {headers}")
-    logging.debug(f"Body: {body}")
     logging.debug(f"Query: {query}")
 
     # Remove None values from query parameters
     query_dict = {k: v for k, v in query.to_dict().items() if v is not None}
 
-    response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
-    api_response = ApiResponse(response)
-    params['response'] = api_response
-    self.latest_response = api_response
-    self.vars['response'] = api_response
-
-    logging.debug(f"Response status code: {response.status_code}")
-    logging.debug(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
+    if data.get('type') == 'bulk':
+      wrapper = data.get('wrapper', '')
+      items = self.render_template(body_data, params)
+      for item in items:
+        wrapped_item = {wrapper: item} if wrapper else item
+        body = json.dumps(wrapped_item)
+        logging.debug(f"Body: {body}")
+        response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
+        api_response = ApiResponse(response)
+        params['response'] = api_response
+        self.latest_response = api_response
+        self.vars['response'] = api_response
+        logging.debug(f"Response status code: {response.status_code}")
+        logging.debug(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
+    else:
+      body = self.render_template(json.dumps(body_data.to_dict()), params)
+      logging.debug(f"Body: {body}")
+      response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
+      api_response = ApiResponse(response)
+      params['response'] = api_response
+      self.latest_response = api_response
+      self.vars['response'] = api_response
+      logging.debug(f"Response status code: {response.status_code}")
+      logging.debug(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
 
   def _handle_log(self, command: str, data: YmlObj, params: YmlObj):
     level = command.split('.')[1]
