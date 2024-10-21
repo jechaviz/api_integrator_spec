@@ -39,8 +39,9 @@ class ApiIntegrator:
 
   def execute_perform(self, perform_info: Obj, params: Obj):
     action = perform_info.perform
-    data = action.data if action.has('data') else Obj({})
+    data = action.data if isinstance(action, Obj) and action.has('data') else Obj({})
     logging.info(f"Perform: {action}")
+    
     if isinstance(action, Obj):
       action_str = action.action
     elif isinstance(action, str):
@@ -64,10 +65,11 @@ class ApiIntegrator:
         handler = getattr(self, handler_name, None)
         if handler:
           handler(data, params)
-        if 'responses' in perform_info:
-          self._handle_responses(perform_info.responses, params)
         else:
           raise ValueError(f"Unknown action: {action_str}")
+    
+    if 'responses' in perform_info:
+      self._handle_responses(perform_info.responses, params)
   def _handle_http(self, command: str, data: Obj, params: Obj):
     method = command.split('.')[1].upper()
     endpoint = data.get('path', '') or data.get('url', '')
@@ -128,7 +130,12 @@ class ApiIntegrator:
       for condition_type in ['is_success', 'is_error']:
         if response.has(condition_type) and self._check_response_conditions(response[condition_type], params):
           for perform in response.get('performs', []):
-            self.execute_perform(perform, params)
+            if isinstance(perform, Obj) and perform.has('perform'):
+              self.execute_perform(perform, params)
+            elif isinstance(perform, dict) and 'perform' in perform:
+              self.execute_perform(Obj(perform), params)
+            else:
+              logging.warning(f"Invalid perform object: {perform}")
 
           return True  # Indicate that a response condition was met
 
