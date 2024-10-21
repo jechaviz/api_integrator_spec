@@ -66,7 +66,6 @@ class ApiIntegrator:
           handler(data, params)
         else:
           raise ValueError(f"Unknown action: {action_str}")
-
   def _handle_http(self, command: str, data: Obj, params: Obj):
     method = command.split('.')[1].upper()
     endpoint = data.get('path', '') or data.get('url', '')
@@ -78,29 +77,27 @@ class ApiIntegrator:
     # Remove None values from query parameters
     query_dict = {k: v for k, v in query.to_dict().items() if v is not None}
 
-    if data.get('type') == 'bulk':
-      wrapper = data.get('wrapper', '')
-      items = self.render_template(body_data, params)
-      for item in items:
-        wrapped_item = {wrapper: item} if wrapper else item
-        body = json.dumps(wrapped_item)
-        logging.info(f"Doing: {method} {url} {headers} {query} {body}")
+    def log_and_request(body):
+        """Helper function to log request and make HTTP call."""
+        logging.info(f"Request: {method} {url} {headers} {query} {body}")
         response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
         api_response = ApiResponse(response)
         params['response'] = api_response
         self.latest_response = api_response
         self.vars['response'] = api_response
-        logging.info(f"Response status code: {response.status_code}")
-        logging.info(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
+        logging.info(f'Response [{response.status_code}] {response.text[:200]}')
+
+    if data.get('type') == 'bulk':
+        wrapper = data.get('wrapper', '')
+        items = self.render_template(body_data, params)
+        for item in items:
+            wrapped_item = {wrapper: item} if wrapper else item
+            body = json.dumps(wrapped_item)
+            log_and_request(body)
     else:
-      body = self.render_template(json.dumps(body_data.to_dict()), params)
-      logging.info(f"Doing: {method} {url} {headers} {query} {body}")
-      response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
-      api_response = ApiResponse(response)
-      params['response'] = api_response
-      self.latest_response = api_response
-      self.vars['response'] = api_response
-      logging.info(f"Response: [{response.status_code}] {response.text[:200]}...")  # Log first 200 characters of response
+        body = self.render_template(json.dumps(body_data.to_dict()), params)
+        log_and_request(body)
+
 
   def _handle_log(self, command: str, data: Obj, params: Obj):
     level = command.split('.')[1]
@@ -128,9 +125,11 @@ class ApiIntegrator:
     for response in responses:
       for condition_type in ['is_success', 'is_error']:
         if response.has(condition_type) and self._check_response_conditions(response[condition_type], params):
-          self._execute_performs(response.performs, params)
-          return
-
+          performs = response.get('performs', [])
+          logging.info(f"Performs: {performs}")
+          for perform in response.get('performs', []):
+            self.execute_perform(perform, params)
+          return True
     logging.warning("No matching response conditions found")
 
   def _check_response_conditions(self, conditions: Obj, params: Obj) -> bool:
