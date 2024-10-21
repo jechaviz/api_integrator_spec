@@ -40,7 +40,7 @@ class ApiIntegrator:
   def execute_perform(self, perform_info: Obj, params: Obj):
     action = perform_info.perform
     data = action.data if action.has('data') else Obj({})
-
+    logging.info(f"Perform: {action}")
     if isinstance(action, Obj):
       action_str = action.action
     elif isinstance(action, str):
@@ -64,6 +64,8 @@ class ApiIntegrator:
         handler = getattr(self, handler_name, None)
         if handler:
           handler(data, params)
+        if 'responses' in perform_info:
+          self._handle_responses(perform_info.responses, params)
         else:
           raise ValueError(f"Unknown action: {action_str}")
   def _handle_http(self, command: str, data: Obj, params: Obj):
@@ -125,11 +127,11 @@ class ApiIntegrator:
     for response in responses:
       for condition_type in ['is_success', 'is_error']:
         if response.has(condition_type) and self._check_response_conditions(response[condition_type], params):
-          performs = response.get('performs', [])
-          logging.info(f"Performs: {performs}")
           for perform in response.get('performs', []):
             self.execute_perform(perform, params)
-          return True
+
+          return True  # Indicate that a response condition was met
+
     logging.warning("No matching response conditions found")
 
   def _check_response_conditions(self, conditions: Obj, params: Obj) -> bool:
@@ -151,10 +153,6 @@ class ApiIntegrator:
       'length_lte': lambda v: len(response.text) <= v,
     }
     return all(condition_checks.get(condition, lambda v: False)(value) for condition, value in conditions.items())
-
-  def _execute_performs(self, performs: List[Obj], params: Obj):
-    for perform in performs:
-      self.execute_perform(perform, params)
 
   def render_template(self, template: Union[str, Obj, List], params: Obj) -> Any:
     if isinstance(template, str):
