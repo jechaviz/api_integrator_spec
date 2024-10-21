@@ -1,0 +1,361 @@
+api_integrator: 0.0.1
+info:
+  title: Reqres.in Users API Integration
+  version: 1.0.0
+  description: Configuration for integrating with Reqres.in Users API
+  contact:
+    name: Developer
+    url: https://reqres.in
+    email: support@example.com
+  lang: python
+
+supplier_servers:
+  - id: prod
+    url: https://reqres.in/api
+    description: Reqres.in production server
+
+tags:
+  - name: users
+    description: Endpoints to manage users
+
+actions:
+  get_all_users:
+    tags:
+      - users
+    description: Get a list of users
+    performs:
+      - perform:
+          action: http.get
+          data:
+            path: '{{supplier_server.url}}/users'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully retrieved all users'
+              - perform:
+                  action: vars.set
+                  data:
+                    all_users: '{{response.body}}'
+          - is_error:
+              code: 400
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'Error retrieving users: {{response.body}}'
+
+  get_user_by_id:
+    tags:
+      - users
+    description: Get a single user by ID
+    performs:
+      - perform:
+          action: http.get
+          data:
+            path: '{{supplier_server.url}}/users/{{user_id}}'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully retrieved user with ID {{user_id}}'
+              - perform:
+                  action: vars.set
+                  data:
+                    user: '{{response.body}}'
+          - is_error:
+              code: 404
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'User  with ID {{user_id}} not found'
+
+  get_user_not_found:
+    tags:
+      - users
+    description: Get a single user that does not exist
+    performs:
+      - perform:
+          action: http.get
+          data:
+            path: '{{supplier_server.url}}/users/{{invalid_user_id}}'
+        responses:
+          - is_error:
+              code: 404
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'User  with ID {{invalid_user_id}} not found'
+
+  create_user:
+    tags:
+      - users
+    description: Create a new user
+    performs:
+      - perform:
+          action: http.post
+          data:
+            path: '{{supplier_server.url}}/users'
+            body:
+              name: '{{new_user_name}}'
+              job: '{{new_user_job}}'
+        responses:
+          - is_success:
+              code: 201
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully created new user'
+              - perform:
+                  action: vars.set
+                  data:
+                    created_user: '{{response.body}}'
+          - is_error:
+              code: 400
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'Error creating user: {{response.body}}'
+
+  update_user_put:
+    tags:
+      - users
+    description: Update an existing user using PUT method
+    performs:
+      - perform:
+          action: http.put
+          data:
+            path: '{{supplier_server.url}}/users/{{user_id}}'
+            body:
+              name: '{{updated_user_name}}'
+              job: '{{updated_user_job}}'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully updated user with ID {{user_id}}'
+          - is_error:
+              code: 400
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'Error updating user with ID {{user_id}}'
+
+  update_user_patch:
+    tags:
+      - users
+    description: Update an existing user using PATCH method
+    performs:
+      - perform:
+          action: http.patch
+          data:
+            path: '{{supplier_server.url}}/users/{{user_id}}'
+            body:
+              job: '{{updated_user_job}}'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully patched user with ID {{user_id}}'
+          - is_error:
+              code: 400
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'Error patching user with ID {{user_id}}'
+
+  delete_user:
+    tags:
+      - users
+    description: Delete an existing user
+    performs:
+      - perform:
+          action: http.delete
+          data:
+            path: '{{supplier_server.url}}/users/{{user_id}}'
+        responses:
+          - is_success:
+              code: 204
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully deleted user with ID {{user_id}}'
+          - is_error:
+              code: 404
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'Error deleting user with ID {{user_id}}, not found'
+
+  register_successful:
+    tags:
+      - users
+    description: Register a new user successfully
+    performs:
+      - perform:
+          action: http.post
+          data:
+            path: '{{supplier_server.url}}/register'
+            body:
+              email: '{{register_email}}'
+              password: '{{register_password}}'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully registered new user'
+
+  register_unsuccessful:
+    tags:
+      - users
+    description: Attempt to register a new user unsuccessfully
+    performs:
+      - perform:
+          action: http.post
+          data:
+            path: '{{supplier_server.url}}/register'
+            body:
+              email: '{{invalid_email}}'
+        responses:
+          - is_error:
+              code: 400
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'Error registering new user, invalid email format'
+
+  login_successful:
+    tags:
+      - users
+    description: Login successfully
+    performs:
+      - perform:
+          action: http.post
+          data:
+            path: '{{supplier_server.url}}/login'
+            body:
+              email: '{{login_email}}'
+              password: '{{login_password}}'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully logged in user'
+
+  login_unsuccessful:
+    tags:
+      - users
+    description: Attempt to login unsuccessfully
+    performs:
+      - perform:
+          action: http.post
+          data:
+            path: '{{supplier_server.url}}/login'
+            body:
+              email: '{{invalid_login_email}}'
+        responses:
+          - is_error:
+              code: 400
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'Error logging in, invalid credentials'
+
+  get_delayed_response:
+    tags:
+      - users
+    description: Simulate a delayed response
+    performs:
+      - perform:
+          action: http.get
+          data:
+            path: '{{supplier_server.url}}/users?delay=3'
+        responses:
+          - is_success:
+              code: 200
+            performs:
+              - perform:
+                  action: log.info
+                  data: 'Successfully retrieved delayed response'
+
+  test_crud:
+    tags:
+      - users
+    description: Test CRUD operations
+    performs:
+      - perform:
+          action: create_user
+          data:
+            body:
+              name: '{{new_user_name}}'
+              job: '{{new_user_job}}'
+        responses:
+          - is_success:
+              code: 201
+            performs:
+              - perform:
+                  action: update_user_put
+                  data:
+                    path: '{{supplier_server.url}}/users/{{response.body.id}}'
+                    body:
+                      name: '{{updated_user_name}}'
+                      job: '{{updated_user_job}}'
+                responses:
+                  - is_success:
+                      code: 200
+                    performs:
+                      - perform:
+                          action: delete_user
+                          data:
+                            path: '{{supplier_server.url}}/users/{{response.body.id}}'
+                        responses:
+                          - is_success:
+                              code: 204
+                            performs:
+                              - perform:
+                                  action: log.info
+                                  data: 'Successfully tested CRUD operations'
+                          - is_error:
+                              code: 404
+                            performs:
+                              - perform:
+                                  action: log.error
+                                  data: 'Error deleting user, not found'
+      - is_error:
+          code: 400
+        performs:
+          - perform:
+              action: log.error
+              data: 'Error creating user: {{response.body}}'
+vars:
+  supplier_server:
+    id: prod
+  user_id: 2  # Example user ID for testing; adjust as needed.
+  invalid_user_id: "23"  # Example of an invalid user ID for testing.
+  new_user_name: John Doe
+  new_user_job: Developer
+  updated_user_name: Jane Doe
+  updated_user_job: Designer
+  register_email: 'john@example.com'
+  register_password: password123
+  invalid_email: "not- an- email"
+  login_email: john@example.com
+  login_password: password123
+  invalid_login_email: "wrong- email@example.com"
+
+constants:
+  retry_trials: 3
+
+my_app_server:
+  url: http://localhost:8000
