@@ -37,15 +37,12 @@ class ApiResponse:
     def __str__(self) -> str:
         elements = [f"status_code={self.status_code}"]
         
-        # Incluir headers
         headers_str = self._format_headers()
         elements.append(f"headers={{{headers_str}}}")
         
-        # Comprobar si el cuerpo es JSON o texto
         body_str = self._format_body()
         elements.append(body_str)
         
-        # Incluir otros atributos dinámicamente
         for attr in ['url', 'encoding']:
             value = self._format_attribute(attr)
             elements.append(f"{attr}={value}")
@@ -62,10 +59,10 @@ class ApiResponse:
 
     def _format_body(self) -> str:
         if self.json is not None:
-            body_str = json.dumps(self.json)[:100]  # Limitar a 100 caracteres
+            body_str = json.dumps(self.json)[:100]
             return f"body(json)={body_str}"
         else:
-            body_str = str(self.body)[:100]  # Limitar a 100 caracteres
+            body_str = str(self.body)[:100]
             return f"body(text)={body_str}"
 
     def _format_attribute(self, attr: str) -> str:
