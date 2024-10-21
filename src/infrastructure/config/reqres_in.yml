@@ -332,12 +332,12 @@ actions:
                               - perform:
                                   action: log.error
                                   data: 'Error deleting user, not found'
-      - is_error:
-          code: 400
-        performs:
-          - perform:
-              action: log.error
-              data: 'Error creating user: {{response.body}}'
+          - is_error:
+              code: 400
+            performs:
+              - perform:
+                  action: log.error
+                  data: 'Error creating user: {{response.body}}'
 vars:
   supplier_server:
     id: prod

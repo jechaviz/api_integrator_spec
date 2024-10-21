@@ -1,5 +1,4 @@
 import snoop
-import yaml
 import json
 import re
 import requests
@@ -19,6 +18,7 @@ class ApiIntegrator:
     self.session = requests.Session()
     self.latest_response = None
     self._setup_logging()
+    self.i = 0
     
     # Initialize my_app_server
     self.vars['my_app_server'] = self.config.my_app_server if self.config.has('my_app_server') else 'http://localhost:8000'
@@ -32,7 +32,8 @@ class ApiIntegrator:
       raise ValueError(f"Action '{action_name}' not found in config")
 
     merged_params = Obj({**self.vars.to_dict(), **self.constants.to_dict(), **(params.to_dict() if params else {})})
-    logging.info(f"Reading action '{action_name}', params: {merged_params}")
+    self.i += 1
+    logging.info(f"[{self.i}] {action_name}: {merged_params}")
     for perform in action.performs:
       self.execute_perform(perform, merged_params)
 
@@ -74,10 +75,6 @@ class ApiIntegrator:
     body_data = data.get('body', Obj({}))
     query = Obj({k: self.render_template(v, params) for k, v in data.get('query', Obj({})).items()})
 
-    logging.info(f"HTTP Request: {method} {url}")
-    logging.info(f"Headers: {headers}")
-    logging.info(f"Query: {query}")
-
     # Remove None values from query parameters
     query_dict = {k: v for k, v in query.to_dict().items() if v is not None}
 
@@ -87,7 +84,7 @@ class ApiIntegrator:
       for item in items:
         wrapped_item = {wrapper: item} if wrapper else item
         body = json.dumps(wrapped_item)
-        logging.info(f"Body: {body}")
+        logging.info(f"Doing: {method} {url} {headers} {query} {body}")
         response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
         api_response = ApiResponse(response)
         params['response'] = api_response
@@ -97,14 +94,13 @@ class ApiIntegrator:
         logging.info(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
     else:
       body = self.render_template(json.dumps(body_data.to_dict()), params)
-      logging.info(f"Body: {body}")
+      logging.info(f"Doing: {method} {url} {headers} {query} {body}")
       response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
       api_response = ApiResponse(response)
       params['response'] = api_response
       self.latest_response = api_response
       self.vars['response'] = api_response
-      logging.info(f"Response status code: {response.status_code}")
-      logging.info(f"Response content: {response.text[:200]}...")  # Log first 200 characters of response
+      logging.info(f"Response: [{response.status_code}] {response.text[:200]}...")  # Log first 200 characters of response
 
   def _handle_log(self, command: str, data: Obj, params: Obj):
     level = command.split('.')[1]
@@ -164,7 +160,7 @@ class ApiIntegrator:
   def render_template(self, template: Union[str, Obj, List], params: Obj) -> Any:
     if isinstance(template, str):
       result = re.sub(r'\{\{(.+?)\}\}', lambda m: self.render_value(m.group(1).strip(), params), template)
-      logging.info(f"Rendered template: {template} -> {result}")
+      logging.debug(f"Rendered template: {template} -> {result}")
       return result
     elif isinstance(template, Obj):
       return Obj({k: self.render_template(v, params) for k, v in template.items()})
@@ -214,7 +210,7 @@ class ApiIntegrator:
       return f"{{{{ supplier_server.url }}}}"
 
     value = params.get(key) or self.vars.get(key) or self.constants.get(key) or f"{{{{ {key} }}}}"
-    logging.info(f"Getting value for key '{key}': {value}")
+    logging.debug(f"Getting value for key '{key}': {value}")
     return value
 
 

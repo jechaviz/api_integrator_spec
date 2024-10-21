@@ -32,7 +32,7 @@ class Obj:
             else:
                 return value
         else:
-            raise AttributeError(f"'{self.keys()}' has no key '{key}\nIn: {self._data}'")
+            raise AttributeError(f'In:\n {self._data}\n{self.keys()} has no key {key}')
 
     def __iter__(self):
         return iter(self._data.items())
