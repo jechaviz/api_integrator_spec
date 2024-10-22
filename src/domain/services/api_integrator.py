@@ -142,6 +142,7 @@ class ApiIntegrator:
     logging.warning("No matching response conditions found")
 
   def _check_response_conditions(self, conditions: Obj, params: Obj) -> bool:
+    logging.info(f"conditions: {conditions}, params: {params}")
     response = params['response']
     condition_checks = {
       'code': lambda v: response.status_code == v,
@@ -184,7 +185,7 @@ class ApiIntegrator:
     if key.startswith('response.'):
       response_key = key[9:]  # Remove 'response.' prefix
       if self.latest_response:
-        if response_key == 'json':
+        if response_key in ['json','body']:
           return self.latest_response.body
         elif hasattr(self.latest_response, response_key):
           return getattr(self.latest_response, response_key)
