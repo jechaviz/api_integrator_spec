@@ -108,11 +108,11 @@ actions:
             performs:
               - perform:
                   action: log.info
-                  data: 'Successfully created new user'
+                  data: 'Successfully created new user {{response.body}}'
               - perform:
                   action: vars.set
                   data:
-                    created_user: '{{response.body}}'
+                    created_user: '{{response.body.id}}'
           - is_error:
               code: 400
             performs:
