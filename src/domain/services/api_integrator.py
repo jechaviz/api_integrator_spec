@@ -1,13 +1,16 @@
-import snoop
 import json
-import re
-import requests
+import json
 import logging
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, Any, List, Union
-from src.domain.value_objects.obj_utils import Obj
+from typing import Any, List, Union
+
+import requests
+
 from src.domain.value_objects.api_response import ApiResponse
+from src.domain.value_objects.obj_utils import Obj
+
 
 class ApiIntegrator:
   def __init__(self, config_path: str):
@@ -19,9 +22,10 @@ class ApiIntegrator:
     self.latest_response = None
     self._setup_logging()
     self.i = 0
-    
+
     # Initialize my_app_server
-    self.vars['my_app_server'] = self.config.my_app_server if self.config.has('my_app_server') else 'http://localhost:8000'
+    self.vars['my_app_server'] = self.config.my_app_server if self.config.has(
+      'my_app_server') else 'http://localhost:8000'
 
   def _setup_logging(self):
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -41,7 +45,7 @@ class ApiIntegrator:
     action = perform_info.perform
     data = action.data if isinstance(action, Obj) and action.has('data') else Obj({})
     logging.info(f"Perform: {action}")
-    
+
     if isinstance(action, Obj):
       action_str = action.action
     elif isinstance(action, str):
@@ -67,9 +71,10 @@ class ApiIntegrator:
           handler(data, params)
         else:
           raise ValueError(f"Unknown action: {action_str}")
-    
+
     if 'responses' in perform_info:
       self._handle_responses(perform_info.responses, params)
+
   def _handle_http(self, command: str, data: Obj, params: Obj):
     method = command.split('.')[1].upper()
     endpoint = data.get('path', '') or data.get('url', '')
@@ -82,26 +87,25 @@ class ApiIntegrator:
     query_dict = {k: v for k, v in query.to_dict().items() if v is not None}
 
     def log_and_request(body):
-        """Helper function to log request and make HTTP call."""
-        logging.info(f"Request: {method} {url} {headers} {query} {body}")
-        response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
-        api_response = ApiResponse(response)
-        params['response'] = api_response
-        self.latest_response = api_response
-        self.vars['response'] = api_response
-        logging.info(f'Response [{response.status_code}] {response.text[:200]}')
+      """Helper function to log request and make HTTP call."""
+      logging.info(f"Request: {method} {url} {headers} {query} {body}")
+      response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
+      api_response = ApiResponse(response)
+      params['response'] = api_response
+      self.latest_response = api_response
+      self.vars['response'] = api_response
+      logging.info(f'Response [{response.status_code}] {response.text[:200]}')
 
     if data.get('type') == 'bulk':
-        wrapper = data.get('wrapper', '')
-        items = self.render_template(body_data, params)
-        for item in items:
-            wrapped_item = {wrapper: item} if wrapper else item
-            body = json.dumps(wrapped_item)
-            log_and_request(body)
-    else:
-        body = self.render_template(json.dumps(body_data.to_dict()), params)
+      wrapper = data.get('wrapper', '')
+      items = self.render_template(body_data, params)
+      for item in items:
+        wrapped_item = {wrapper: item} if wrapper else item
+        body = json.dumps(wrapped_item)
         log_and_request(body)
-
+    else:
+      body = self.render_template(json.dumps(body_data.to_dict()), params)
+      log_and_request(body)
 
   def _handle_log(self, command: str, data: Obj, params: Obj):
     level = command.split('.')[1]
@@ -185,13 +189,28 @@ class ApiIntegrator:
     if key.startswith('response.'):
       response_key = key[9:]  # Remove 'response.' prefix
       if self.latest_response:
-        if response_key in ['json','body']:
+        if response_key in ['json', 'body']:
           return self.latest_response.body
         elif hasattr(self.latest_response, response_key):
           return getattr(self.latest_response, response_key)
         else:
-          logging.warning(f"Unknown response attribute: {response_key}")
-          return f"{{{{ {key} }}}}"
+          # Split the key to access nested attributes or array indices
+          nested_keys = response_key.split('.')
+          value = self.latest_response.json
+          for sub_key in nested_keys:
+            if isinstance(value, dict) and sub_key in value:
+              value = value[sub_key]
+            elif isinstance(value, list) and sub_key.isdigit():
+              index = int(sub_key)
+              if index < len(value):
+                value = value[index]
+              else:
+                logging.warning(f"Array index out of range: {sub_key}")
+                return f"{{{{ {key} }}}}"
+            else:
+              logging.warning(f"Unknown response attribute: {response_key}")
+              return f"{{{{ {key} }}}}"
+          return value
       else:
         logging.warning(f"No response available for key: {key}")
         return f"{{{{ {key} }}}}"
