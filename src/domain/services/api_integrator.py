@@ -133,19 +133,32 @@ class ApiIntegrator:
       raise ValueError(f'Unknown vars operation: {operation}')
 
   def _handle_responses(self, responses: List[Obj], params: Obj):
+    """Handle response conditions and execute corresponding performs."""
     for response in responses:
+      # Check both success and error conditions
       for condition_type in ['is_success', 'is_error']:
-        if response.has(condition_type) and self._check_response_conditions(response[condition_type]):
-          for perform in response.get('performs', []):
-            if isinstance(perform, Obj) and perform.has('perform'):
-              self.execute_perform(perform, params)
-            elif isinstance(perform, dict) and 'perform' in perform:
-              self.execute_perform(Obj(perform), params)
-            else:
-              logging.warning(f'Invalid perform object: {perform}')
+        if not response.has(condition_type):
+          continue
+          
+        if self._check_response_conditions(response[condition_type]):
+          self._execute_response_performs(response.get('performs', []), params)
           return True
-
+    
     logging.warning('No matching response conditions found')
+    return False
+
+  def _execute_response_performs(self, performs: List[Union[Obj, dict]], params: Obj):
+    """Execute a list of perform actions for a matching response."""
+    for perform in performs:
+      if isinstance(perform, (Obj, dict)):
+        # Convert dict to Obj if needed
+        perform_obj = perform if isinstance(perform, Obj) else Obj(perform)
+        if perform_obj.has('perform'):
+          self.execute_perform(perform_obj, params)
+        else:
+          logging.warning(f'Missing perform key in object: {perform}')
+      else:
+        logging.warning(f'Invalid perform object type: {type(perform)}')
 
   def _check_response_conditions(self, conditions: Obj) -> bool:
     response = self.latest_response
@@ -225,56 +238,66 @@ class ApiIntegrator:
     return value
 
   def _get_response_value(self, key: str) -> Any:
-    response_key = key[9:]  # Remove 'response.' prefix
+    """Get a value from the latest response using dot notation."""
     if not self.latest_response:
       logging.warning(f'No response available for key: {key}')
       return f'{{{{ {key} }}}}'
 
-    # Handle direct response attributes
+    response_key = key[9:]  # Remove 'response.' prefix
+    
+    # Handle direct response attributes first
     if hasattr(self.latest_response, response_key):
       return getattr(self.latest_response, response_key)
 
-    # Handle body/json access
+    # For body/json access, try to parse JSON first
     try:
-      # Parse JSON response
-      json_data = json.loads(self.latest_response.body)
-      
-      # If just asking for body/json, return full parsed data
+      json_data = self._parse_response_json()
+      if not json_data:
+        return None
+        
+      # Return full JSON for body/json keys
       if response_key in ['json', 'body']:
         return json_data
-
-      # Handle nested keys
-      nested_keys = response_key.split('.')
-      if 'body' in nested_keys:
-        nested_keys.remove('body')
+        
+      # Navigate nested structure
+      return self._get_nested_value(json_data, response_key)
       
-      # Navigate through nested structure
-      value = json_data
-      for k in nested_keys:
-        if isinstance(value, dict):
-          if k in value:
-            value = value[k]
-          else:
-            logging.warning(f'Key {k} not found in response')
-            return None
-        elif isinstance(value, list) and k.isdigit():
-          index = int(k)
-          if 0 <= index < len(value):
-            value = value[index]
-          else:
-            logging.warning(f'Array index {k} out of range')
-            return None
-        else:
-          logging.warning(f'Cannot access {k} in {type(value)}')
-          return None
-      return value
-
-    except json.JSONDecodeError:
-      logging.warning('Response body is not valid JSON')
-      return None
     except Exception as e:
       logging.warning(f'Error accessing response value: {e}')
       return None
+      
+  def _parse_response_json(self) -> Union[dict, list, None]:
+    """Parse the response body as JSON."""
+    try:
+      return json.loads(self.latest_response.body)
+    except json.JSONDecodeError:
+      logging.warning('Response body is not valid JSON')
+      return None
+      
+  def _get_nested_value(self, data: Union[dict, list], key_path: str) -> Any:
+    """Get a nested value using dot notation."""
+    # Remove 'body' from path if present
+    nested_keys = [k for k in key_path.split('.') if k != 'body']
+    
+    value = data
+    for key in nested_keys:
+      if isinstance(value, dict):
+        if key in value:
+          value = value[key]
+        else:
+          logging.warning(f'Key {key} not found in response')
+          return None
+      elif isinstance(value, list) and key.isdigit():
+        index = int(key)
+        if 0 <= index < len(value):
+          value = value[index]
+        else:
+          logging.warning(f'Array index {key} out of range')
+          return None
+      else:
+        logging.warning(f'Cannot access {key} in {type(value)}')
+        return None
+    return value
 
   def _get_supplier_server_url(self, params: Obj) -> str:
     supplier_server = (
