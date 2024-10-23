@@ -183,7 +183,12 @@ class ApiIntegrator:
 
   def render_template(self, template: Union[str, Obj, List], params: Obj) -> Any:
     if isinstance(template, str):
+      # First render any template variables
       result = re.sub(r'\{\{(.+?)\}\}', lambda m: self.render_value(m.group(1).strip(), params), template)
+      # Then check if it's a URL path that needs ID substitution
+      if '/users/' in result:
+        # Replace hardcoded IDs with user_id from vars if it exists
+        result = re.sub(r'/users/(\d+)', lambda m: f'/users/{self.vars.get("user_id", m.group(1))}', result)
       logging.debug(f'Rendered template: {template} -> {result}')
       return result
     elif isinstance(template, Obj):
