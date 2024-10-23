@@ -85,7 +85,7 @@ class ApiIntegrator:
     # Remove None values from query parameters
     query_dict = {k: v for k, v in query.to_dict().items() if v is not None}
 
-    def log_and_request(body):
+    def request_response(body):
       logging.info(f'Request: 🔹{method}🔹 {url} {headers} {query} {body}')
       response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
       api_response = ApiResponse(response)
@@ -100,10 +100,10 @@ class ApiIntegrator:
       for item in items:
         wrapped_item = {wrapper: item} if wrapper else item
         body = json.dumps(wrapped_item)
-        log_and_request(body)
+        request_response(body)
     else:
       body = self.render_template(json.dumps(body_data.to_dict()), params)
-      log_and_request(body)
+      request_response(body)
 
   def _handle_log(self, command: str, data: Obj, params: Obj):
     level = command.split('.')[1]
