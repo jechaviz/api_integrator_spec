@@ -1,5 +1,4 @@
 import json
-import json
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -7,10 +6,10 @@ from pathlib import Path
 from typing import Any, List, Union
 
 import requests
+from snoop import snoop
 
 from src.domain.value_objects.api_response import ApiResponse
 from src.domain.value_objects.obj_utils import Obj
-
 
 class ApiIntegrator:
   def __init__(self, config_path: str):
@@ -37,21 +36,21 @@ class ApiIntegrator:
 
     merged_params = Obj({**self.vars.to_dict(), **self.constants.to_dict(), **(params.to_dict() if params else {})})
     self.i += 1
-    logging.info(f"[{self.i}] {action_name}: {merged_params}")
+    logging.info(f'[{self.i}] {action_name}')
     for perform in action.performs:
       self.execute_perform(perform, merged_params)
 
   def execute_perform(self, perform_info: Obj, params: Obj):
     action = perform_info.perform
     data = action.data if isinstance(action, Obj) and action.has('data') else Obj({})
-    logging.info(f"Perform: {action}")
+    # logging.info(f'Perform: {action}')
 
     if isinstance(action, Obj):
       action_str = action.action
     elif isinstance(action, str):
       action_str = action
     else:
-      raise ValueError(f"Invalid action type: {type(action)}")
+      raise ValueError(f'Invalid action type: {type(action)}')
 
     action_parts = action_str.split('.')
     if len(action_parts) > 1:
@@ -60,7 +59,7 @@ class ApiIntegrator:
       if handler:
         handler(action_str, data, params)
       else:
-        raise ValueError(f"Unknown action: {action_str}")
+        raise ValueError(f'Unknown action: {action_str}')
     else:
       if action_str in self.config.actions:
         self.perform_action(action_str, params)
@@ -70,7 +69,7 @@ class ApiIntegrator:
         if handler:
           handler(data, params)
         else:
-          raise ValueError(f"Unknown action: {action_str}")
+          raise ValueError(f'Unknown action: {action_str}')
 
     if 'responses' in perform_info:
       self._handle_responses(perform_info.responses, params)
@@ -87,8 +86,7 @@ class ApiIntegrator:
     query_dict = {k: v for k, v in query.to_dict().items() if v is not None}
 
     def log_and_request(body):
-      """Helper function to log request and make HTTP call."""
-      logging.info(f"Request: {method} {url} {headers} {query} {body}")
+      logging.info(f'Request: 🔹{method}🔹 {url} {headers} {query} {body}')
       response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
       api_response = ApiResponse(response)
       params['response'] = api_response
@@ -122,32 +120,35 @@ class ApiIntegrator:
     operation = command.split('.')[1]
     if operation == 'set':
       for key, value in data.items():
-        self.vars[key] = self.render_template(value, params)
+        if value.startswith('response.'):
+          response_value = self._get_response_value(value)
+          if response_value is not None:
+            self.vars[key] = response_value
+        else:
+          self.vars[key] = self.render_template(value, params)
     elif operation == 'get':
       for key in data:
         params[key] = self.vars.get(key)
     else:
-      raise ValueError(f"Unknown vars operation: {operation}")
+      raise ValueError(f'Unknown vars operation: {operation}')
 
   def _handle_responses(self, responses: List[Obj], params: Obj):
     for response in responses:
       for condition_type in ['is_success', 'is_error']:
-        if response.has(condition_type) and self._check_response_conditions(response[condition_type], params):
+        if response.has(condition_type) and self._check_response_conditions(response[condition_type]):
           for perform in response.get('performs', []):
             if isinstance(perform, Obj) and perform.has('perform'):
               self.execute_perform(perform, params)
             elif isinstance(perform, dict) and 'perform' in perform:
               self.execute_perform(Obj(perform), params)
             else:
-              logging.warning(f"Invalid perform object: {perform}")
+              logging.warning(f'Invalid perform object: {perform}')
+          return True
 
-          return True  # Indicate that a response condition was met
+    logging.warning('No matching response conditions found')
 
-    logging.warning("No matching response conditions found")
-
-  def _check_response_conditions(self, conditions: Obj, params: Obj) -> bool:
-    logging.info(f"conditions: {conditions}, params: {params}")
-    response = params['response']
+  def _check_response_conditions(self, conditions: Obj) -> bool:
+    response = self.latest_response
     condition_checks = {
       'code': lambda v: response.status_code == v,
       'contains': lambda v: v in response.text,
@@ -169,7 +170,7 @@ class ApiIntegrator:
   def render_template(self, template: Union[str, Obj, List], params: Obj) -> Any:
     if isinstance(template, str):
       result = re.sub(r'\{\{(.+?)\}\}', lambda m: self.render_value(m.group(1).strip(), params), template)
-      logging.debug(f"Rendered template: {template} -> {result}")
+      logging.debug(f'Rendered template: {template} -> {result}')
       return result
     elif isinstance(template, Obj):
       return Obj({k: self.render_template(v, params) for k, v in template.items()})
@@ -187,56 +188,71 @@ class ApiIntegrator:
 
   def get_value(self, key: str, params: Obj) -> Any:
     if key.startswith('response.'):
-      response_key = key[9:]  # Remove 'response.' prefix
-      if self.latest_response:
-        if response_key in ['json', 'body']:
-          return self.latest_response.body
-        elif hasattr(self.latest_response, response_key):
-          return getattr(self.latest_response, response_key)
-        else:
-          # Split the key to access nested attributes or array indices
-          nested_keys = response_key.split('.')
-          value = self.latest_response.json
-          for sub_key in nested_keys:
-            if isinstance(value, dict) and sub_key in value:
-              value = value[sub_key]
-            elif isinstance(value, list) and sub_key.isdigit():
-              index = int(sub_key)
-              if index < len(value):
-                value = value[index]
-              else:
-                logging.warning(f"Array index out of range: {sub_key}")
-                return f"{{{{ {key} }}}}"
-            else:
-              logging.warning(f"Unknown response attribute: {response_key}")
-              return f"{{{{ {key} }}}}"
-          return value
-      else:
-        logging.warning(f"No response available for key: {key}")
-        return f"{{{{ {key} }}}}"
+      return self._get_response_value(key)
+    elif key == 'supplier_server.url':
+      return self._get_supplier_server_url(params)
 
-    if key == 'supplier_server.url':
-      supplier_server = params.get('supplier_server') or self.vars.get('supplier_server') or self.constants.get(
-        'supplier_server')
-      if isinstance(supplier_server, Obj):
-        if supplier_server.has('url'):
-          return supplier_server.url
-        elif supplier_server.has('id'):
-          server_id = supplier_server.id
-          for server in self.config.supplier_servers:
-            if server.id == server_id:
-              return server.url
-      elif isinstance(supplier_server, str):
-        for server in self.config.supplier_servers:
-          if server.id == supplier_server:
-            return server.url
-      logging.warning(f"Could not find supplier_server.url for {supplier_server}")
-      return f"{{{{ supplier_server.url }}}}"
-
-    value = params.get(key) or self.vars.get(key) or self.constants.get(key) or f"{{{{ {key} }}}}"
+    value = (
+        params.get(key) or
+        self.vars.get(key) or
+        self.constants.get(key) or
+        f'{{{{ {key} }}}}'
+    )
     logging.debug(f"Getting value for key '{key}': {value}")
     return value
 
+  def _get_response_value(self, key: str) -> Any:
+    response_key = key[9:]  # Remove 'response.' prefix
+    if self.latest_response:
+      if response_key in ['json', 'body']:
+        return self.latest_response.body
+      if hasattr(self.latest_response, response_key):
+        return getattr(self.latest_response, response_key)
+      return self._get_nested_response_value(response_key)
+    logging.warning(f'No response available for key: {key}')
+    return f'{{{{ {key} }}}}'
+
+  def _get_nested_response_value(self, response_key: str) -> Any:
+    nested_keys = response_key.split('.')
+    nested_keys.remove('body')  # Remove 'body' from the list
+    value = Obj(self.latest_response.body).get(nested_keys[0])
+
+    for sub_key in nested_keys[1:]:
+      if isinstance(value, dict):
+        value = value.get(sub_key)
+      elif isinstance(value, list) and sub_key.isdigit():
+        index = int(sub_key)
+        if 0 <= index < len(value):
+          value = value[index]
+        else:
+          logging.warning(f'Array index out of range: {sub_key}')
+          return f'{{{{ {response_key} }}}}'
+      else:
+        logging.warning(f'Unknown response attribute: {response_key}')
+        return f'{{{{ {response_key} }}}}'
+
+    return value
+
+  def _get_supplier_server_url(self, params: Obj) -> str:
+    supplier_server = (
+      params.get('supplier_server') or
+      self.vars.get('supplier_server') or
+      self.constants.get('supplier_server')
+    )
+
+    if isinstance(supplier_server, Obj):
+      if supplier_server.has('url'):
+        return supplier_server.url
+      server_id = supplier_server.get('id')
+      if server_id:
+        return next((server.url for server in self.config.supplier_servers if server.id == server_id),
+                    f'{{{{ supplier_server.url }}}}')
+    elif isinstance(supplier_server, str):
+      return next((server.url for server in self.config.supplier_servers if server.id == supplier_server),
+                  f'{{{{ supplier_server.url }}}}')
+
+    logging.warning(f'Could not find supplier_server.url for {supplier_server}')
+    return f'{{{{ supplier_server.url }}}}'
 
 def main():
   config_relative_path = 'infrastructure/config/reqres_in.yml'
@@ -245,7 +261,6 @@ def main():
   # Example usage
   integrator.perform_action('test_crud')
   # integrator.perform_action('get_item_part', Obj({'id_item': '123', 'id_part': '456'}))
-
 
 if __name__ == '__main__':
   main()
