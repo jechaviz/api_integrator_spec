@@ -112,7 +112,7 @@ actions:
               - perform:
                   action: vars.set
                   data:
-                    created_user: '{{response.body.id}}'
+                    user_id: '{{response.body.id}}'
           - is_error:
               code: 400
             performs:
@@ -130,8 +130,8 @@ actions:
           data:
             path: '{{supplier_server.url}}/users/{{user_id}}'
             body:
-              name: '{{updated_user_name}}'
-              job: '{{updated_user_job}}'
+              name: '{{name}}'
+              job: '{{job}}'
         responses:
           - is_success:
               code: 200
