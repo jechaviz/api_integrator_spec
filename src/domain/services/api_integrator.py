@@ -193,11 +193,20 @@ class ApiIntegrator:
     return template
 
   def render_value(self, key: str, params: Obj) -> str:
+    # First check if it's a response path
+    if key.startswith('response.'):
+      response_value = self._get_response_value(key)
+      if response_value is not None:
+        return str(response_value)
+    
+    # Then try normal value lookup
     value = self.get_value(key, params)
     if value == f'{{{{ {key} }}}}':  # If not found in params/vars/constants
       # Try getting from vars directly for log messages
       if key in self.vars:
         return str(self.vars[key])
+    
+    # Format the value appropriately
     if isinstance(value, dict):
       return json.dumps(value)
     elif isinstance(value, ET.Element):
