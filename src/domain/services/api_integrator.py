@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, List, Union
 
 import requests
-from snoop import snoop
 
 from src.domain.value_objects.api_response import ApiResponse
 from src.domain.value_objects.obj_utils import Obj
@@ -139,11 +138,11 @@ class ApiIntegrator:
       for condition_type in ['is_success', 'is_error']:
         if not response.has(condition_type):
           continue
-          
+
         if self._check_response_conditions(response[condition_type]):
           self._execute_response_performs(response.get('performs', []), params)
           return True
-    
+
     logging.warning('No matching response conditions found')
     return False
 
@@ -180,59 +179,6 @@ class ApiIntegrator:
     }
     return all(condition_checks.get(condition, lambda v: False)(value) for condition, value in conditions.items())
 
-  def render_template(self, template: Union[str, Obj, List], params: Obj) -> Any:
-    if isinstance(template, str):
-      # First render any template variables
-      result = re.sub(r'\{\{(.+?)\}\}', lambda m: self.render_value(m.group(1).strip(), params), template)
-      logging.debug(f'Rendered template: {template} -> {result}')
-      return result
-    elif isinstance(template, Obj):
-      return Obj({k: self.render_template(v, params) for k, v in template.items()})
-    elif isinstance(template, list):
-      return [self.render_template(item, params) for item in template]
-    return template
-
-  def render_value(self, key: str, params: Obj) -> str:
-    # First check if it's a response path
-    if key.startswith('response.'):
-      response_value = self._get_response_value(key)
-      if response_value is not None:
-        return str(response_value)
-    
-    # Then try normal value lookup
-    value = self.get_value(key, params)
-    if value == f'{{{{ {key} }}}}':  # If not found in params/vars/constants
-      # Try getting from vars directly for log messages
-      if key in self.vars:
-        return str(self.vars[key])
-    
-    # Format the value appropriately
-    if isinstance(value, dict):
-      return json.dumps(value)
-    elif isinstance(value, ET.Element):
-      return ET.tostring(value, encoding='unicode')
-    return str(value)
-
-  def get_value(self, key: str, params: Obj) -> Any:
-    # Handle special cases first
-    if key.startswith('response.'):
-      return self._get_response_value(key)
-    elif key == 'supplier_server.url':
-      return self._get_supplier_server_url(params)
-
-    # Look up value in order of precedence
-    if key in params:
-      value = params.get(key)
-    elif key in self.vars:
-      value = self.vars.get(key)
-    elif key in self.constants:
-      value = self.constants.get(key)
-    else:
-      value = f'{{{{ {key} }}}}'
-    
-    logging.debug(f"Getting value for key '{key}': {value}")
-    return value
-
   def _get_response_value(self, key: str) -> Any:
     """Get a value from the latest response using dot notation."""
     if not self.latest_response:
@@ -240,7 +186,7 @@ class ApiIntegrator:
       return f'{{{{ {key} }}}}'
 
     response_key = key[9:]  # Remove 'response.' prefix
-    
+
     # Handle direct response attributes first
     if hasattr(self.latest_response, response_key):
       return getattr(self.latest_response, response_key)
@@ -250,18 +196,18 @@ class ApiIntegrator:
       json_data = self._parse_response_json()
       if not json_data:
         return None
-        
+
       # Return full JSON for body/json keys
       if response_key in ['json', 'body']:
         return json_data
-        
+
       # Navigate nested structure
       return self._get_nested_value(json_data, response_key)
-      
+
     except Exception as e:
       logging.warning(f'Error accessing response value: {e}')
       return None
-      
+
   def _parse_response_json(self) -> Union[dict, list, None]:
     """Parse the response body as JSON."""
     try:
@@ -269,12 +215,12 @@ class ApiIntegrator:
     except json.JSONDecodeError:
       logging.warning('Response body is not valid JSON')
       return None
-      
+
   def _get_nested_value(self, data: Union[dict, list], key_path: str) -> Any:
     """Get a nested value using dot notation."""
     # Remove 'body' from path if present
     nested_keys = [k for k in key_path.split('.') if k != 'body']
-    
+
     value = data
     for key in nested_keys:
       if isinstance(value, dict):
@@ -315,6 +261,59 @@ class ApiIntegrator:
 
     logging.warning(f'Could not find supplier_server.url for {supplier_server}')
     return f'{{{{ supplier_server.url }}}}'
+
+  def render_template(self, template: Union[str, Obj, List], params: Obj) -> Any:
+    if isinstance(template, str):
+      # First render any template variables
+      result = re.sub(r'\{\{(.+?)\}\}', lambda m: self.render_value(m.group(1).strip(), params), template)
+      logging.debug(f'Rendered template: {template} -> {result}')
+      return result
+    elif isinstance(template, Obj):
+      return Obj({k: self.render_template(v, params) for k, v in template.items()})
+    elif isinstance(template, list):
+      return [self.render_template(item, params) for item in template]
+    return template
+
+  def render_value(self, key: str, params: Obj) -> str:
+    # First check if it's a response path
+    if key.startswith('response.'):
+      response_value = self._get_response_value(key)
+      if response_value is not None:
+        return str(response_value)
+
+    # Then try normal value lookup
+    value = self.get_value(key, params)
+    if value == f'{{{{ {key} }}}}':  # If not found in params/vars/constants
+      # Try getting from vars directly for log messages
+      if key in self.vars:
+        return str(self.vars[key])
+
+    # Format the value appropriately
+    if isinstance(value, dict):
+      return json.dumps(value)
+    elif isinstance(value, ET.Element):
+      return ET.tostring(value, encoding='unicode')
+    return str(value)
+
+  def get_value(self, key: str, params: Obj) -> Any:
+    # Handle special cases first
+    if key.startswith('response.'):
+      return self._get_response_value(key)
+    elif key == 'supplier_server.url':
+      return self._get_supplier_server_url(params)
+
+    # Look up value in order of precedence
+    if key in params:
+      value = params.get(key)
+    elif key in self.vars:
+      value = self.vars.get(key)
+    elif key in self.constants:
+      value = self.constants.get(key)
+    else:
+      value = f'{{{{ {key} }}}}'
+
+    logging.debug(f"Getting value for key '{key}': {value}")
+    return value
 
 def main():
   config_relative_path = 'infrastructure/config/reqres_in.yml'
