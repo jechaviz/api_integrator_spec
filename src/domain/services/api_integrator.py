@@ -120,8 +120,10 @@ class ApiIntegrator:
     operation = command.split('.')[1]
     if operation == 'set':
       for key, value in data.items():
+        # Always render the value - render_template handles all types
         rendered_value = self.render_template(value, params)
-        if rendered_value != value or not isinstance(value, str):
+        # Only update and log if the value actually changed
+        if rendered_value != value:
           self.vars[key] = rendered_value
           logging.info(f'Updated var {key}={rendered_value}')
     elif operation == 'get':
@@ -203,17 +205,22 @@ class ApiIntegrator:
     return str(value)
 
   def get_value(self, key: str, params: Obj) -> Any:
+    # Handle special cases first
     if key.startswith('response.'):
       return self._get_response_value(key)
     elif key == 'supplier_server.url':
       return self._get_supplier_server_url(params)
 
-    value = (
-        params.get(key) or
-        self.vars.get(key) or
-        self.constants.get(key) or
-        f'{{{{ {key} }}}}'
-    )
+    # Look up value in order of precedence
+    if key in params:
+      value = params.get(key)
+    elif key in self.vars:
+      value = self.vars.get(key)
+    elif key in self.constants:
+      value = self.constants.get(key)
+    else:
+      value = f'{{{{ {key} }}}}'
+    
     logging.debug(f"Getting value for key '{key}': {value}")
     return value
 
