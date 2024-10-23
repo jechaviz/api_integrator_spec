@@ -137,10 +137,6 @@ actions:
               code: 200
             performs:
               - perform:
-                  action: vars.set
-                  data:
-                    user_id: '{{user_id}}'
-              - perform:
                   action: log.info
                   data: 'Successfully updated user with ID {{user_id}}'
           - is_error:
@@ -188,10 +184,6 @@ actions:
           - is_success:
               code: 204
             performs:
-              - perform:
-                  action: vars.set
-                  data:
-                    user_id: '{{user_id}}'
               - perform:
                   action: log.info
                   data: 'Successfully deleted user with ID {{user_id}}'
