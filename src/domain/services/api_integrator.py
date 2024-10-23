@@ -217,35 +217,55 @@ class ApiIntegrator:
 
   def _get_response_value(self, key: str) -> Any:
     response_key = key[9:]  # Remove 'response.' prefix
-    if self.latest_response:
+    if not self.latest_response:
+      logging.warning(f'No response available for key: {key}')
+      return f'{{{{ {key} }}}}'
+
+    # Handle direct response attributes
+    if hasattr(self.latest_response, response_key):
+      return getattr(self.latest_response, response_key)
+
+    # Handle body/json access
+    try:
+      # Parse JSON response
+      json_data = json.loads(self.latest_response.body)
+      
+      # If just asking for body/json, return full parsed data
       if response_key in ['json', 'body']:
-        return self.latest_response.body
-      if hasattr(self.latest_response, response_key):
-        return getattr(self.latest_response, response_key)
-      return self._get_nested_response_value(response_key)
-    logging.warning(f'No response available for key: {key}')
-    return f'{{{{ {key} }}}}'
+        return json_data
 
-  def _get_nested_response_value(self, response_key: str) -> Any:
-    nested_keys = response_key.split('.')
-    nested_keys.remove('body')  # Remove 'body' from the list
-    value = Obj(self.latest_response.body).get(nested_keys[0])
-
-    for sub_key in nested_keys[1:]:
-      if isinstance(value, dict):
-        value = value.get(sub_key)
-      elif isinstance(value, list) and sub_key.isdigit():
-        index = int(sub_key)
-        if 0 <= index < len(value):
-          value = value[index]
+      # Handle nested keys
+      nested_keys = response_key.split('.')
+      if 'body' in nested_keys:
+        nested_keys.remove('body')
+      
+      # Navigate through nested structure
+      value = json_data
+      for k in nested_keys:
+        if isinstance(value, dict):
+          if k in value:
+            value = value[k]
+          else:
+            logging.warning(f'Key {k} not found in response')
+            return None
+        elif isinstance(value, list) and k.isdigit():
+          index = int(k)
+          if 0 <= index < len(value):
+            value = value[index]
+          else:
+            logging.warning(f'Array index {k} out of range')
+            return None
         else:
-          logging.warning(f'Array index out of range: {sub_key}')
-          return f'{{{{ {response_key} }}}}'
-      else:
-        logging.warning(f'Unknown response attribute: {response_key}')
-        return f'{{{{ {response_key} }}}}'
+          logging.warning(f'Cannot access {k} in {type(value)}')
+          return None
+      return value
 
-    return value
+    except json.JSONDecodeError:
+      logging.warning('Response body is not valid JSON')
+      return None
+    except Exception as e:
+      logging.warning(f'Error accessing response value: {e}')
+      return None
 
   def _get_supplier_server_url(self, params: Obj) -> str:
     supplier_server = (
