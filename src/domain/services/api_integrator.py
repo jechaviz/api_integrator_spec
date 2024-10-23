@@ -126,8 +126,6 @@ class ApiIntegrator:
         if rendered_value != value:
           self.vars[key] = rendered_value
           logging.info(f'Updated var {key}={rendered_value}')
-          # Refresh merged params after updating vars
-          params.update(Obj({**self.vars.to_dict(), **self.constants.to_dict(), **(params.to_dict() if params else {})}))
     elif operation == 'get':
       for key in data:
         params[key] = self.vars.get(key)
@@ -186,7 +184,7 @@ class ApiIntegrator:
     if isinstance(template, str):
       # First render any template variables
       result = re.sub(r'\{\{(.+?)\}\}', lambda m: self.render_value(m.group(1).strip(), params), template)
-      logging.info(f'Rendered template: {template} -> {result}')
+      logging.debug(f'Rendered template: {template} -> {result}')
       return result
     elif isinstance(template, Obj):
       return Obj({k: self.render_template(v, params) for k, v in template.items()})
