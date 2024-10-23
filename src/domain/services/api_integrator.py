@@ -126,6 +126,8 @@ class ApiIntegrator:
         if rendered_value != value:
           self.vars[key] = rendered_value
           logging.info(f'Updated var {key}={rendered_value}')
+          # Refresh merged params after updating vars
+          params.update(Obj({**self.vars.to_dict(), **self.constants.to_dict(), **(params.to_dict() if params else {})}))
     elif operation == 'get':
       for key in data:
         params[key] = self.vars.get(key)
