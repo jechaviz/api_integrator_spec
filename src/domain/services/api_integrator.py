@@ -199,6 +199,10 @@ class ApiIntegrator:
 
   def render_value(self, key: str, params: Obj) -> str:
     value = self.get_value(key, params)
+    if value == f'{{{{ {key} }}}}':  # If not found in params/vars/constants
+      # Try getting from vars directly for log messages
+      if key in self.vars:
+        return str(self.vars[key])
     if isinstance(value, dict):
       return json.dumps(value)
     elif isinstance(value, ET.Element):
