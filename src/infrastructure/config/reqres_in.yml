@@ -305,6 +305,10 @@ actions:
               code: 201
             performs:
               - perform:
+                  action: vars.set
+                  data:
+                    user_id: '{{response.body.id}}'
+              - perform:
                   action: update_user_put
                   data:
                     path: '{{supplier_server.url}}/users/{{response.body.id}}'
