@@ -120,26 +120,21 @@ class ApiIntegrator:
     operation = command.split('.')[1]
     if operation == 'set':
       for key, value in data.items():
-        # Check if key exists in vars
-        if key in self.vars:
+        if isinstance(value, str):
           if value.startswith('response.'):
             response_value = self._get_response_value(value)
             if response_value is not None:
-              # Update existing var
               self.vars[key] = response_value
-              logging.info(f'Updated existing var {key}={response_value}')
+              logging.info(f'Updated var {key}={response_value}')
           else:
             rendered_value = self.render_template(value, params)
-            self.vars[key] = rendered_value
-            logging.info(f'Updated existing var {key}={rendered_value}')
+            if rendered_value != value:  # Only update if template was actually rendered
+              self.vars[key] = rendered_value
+              logging.info(f'Updated var {key}={rendered_value}')
         else:
-          # Set new var
-          if value.startswith('response.'):
-            response_value = self._get_response_value(value)
-            if response_value is not None:
-              self.vars[key] = response_value
-          else:
-            self.vars[key] = self.render_template(value, params)
+          # Handle non-string values directly
+          self.vars[key] = value
+          logging.info(f'Updated var {key}={value}')
     elif operation == 'get':
       for key in data:
         params[key] = self.vars.get(key)
