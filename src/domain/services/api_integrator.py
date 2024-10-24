@@ -35,7 +35,8 @@ class ApiIntegrator:
       raise ValueError(f"Action '{action_name}' not found in config")
     merged_params = Obj({**(params.to_dict() if params else {}), **self.vars.to_dict(), **self.constants.to_dict()})
     self.i += 1
-    logging.info(f'[{self.i}] {action_name} {merged_params}')
+    # logging.info(f'[{self.i}] {action_name} {merged_params}')
+    logging.info(f'[{self.i}] {action_name}')
     for perform in action.performs:
       self.execute_perform(perform, merged_params)
 
