@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, List, Union
 
 import requests
+from snoop import snoop
 
 from src.domain.value_objects.api_response import ApiResponse
 from src.domain.value_objects.obj_utils import Obj
@@ -32,10 +33,9 @@ class ApiIntegrator:
     action = self.config.actions.get(action_name)
     if not action:
       raise ValueError(f"Action '{action_name}' not found in config")
-
-    merged_params = Obj({**self.vars.to_dict(), **self.constants.to_dict(), **(params.to_dict() if params else {})})
+    merged_params = Obj({**(params.to_dict() if params else {}), **self.vars.to_dict(), **self.constants.to_dict()})
     self.i += 1
-    logging.info(f'[{self.i}] {action_name}')
+    logging.info(f'[{self.i}] {action_name} {merged_params}')
     for perform in action.performs:
       self.execute_perform(perform, merged_params)
 
