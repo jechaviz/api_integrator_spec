@@ -310,19 +310,12 @@ actions:
                     user_id: '{{response.body.id}}'
               - perform:
                   action: update_user_put
-                  data:
-                    path: '{{supplier_server.url}}/users/{{response.body.id}}'
-                    body:
-                      name: '{{updated_user_name}}'
-                      job: '{{updated_user_job}}'
                 responses:
                   - is_success:
                       code: 200
                     performs:
                       - perform:
                           action: delete_user
-                          data:
-                            path: '{{supplier_server.url}}/users/{{response.body.id}}'
                         responses:
                           - is_success:
                               code: 204
