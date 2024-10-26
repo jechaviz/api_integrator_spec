@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, List, Union
 
 import requests
+from flask import Flask, jsonify
 from snoop import snoop
 
 from src.domain.value_objects.api_response import ApiResponse
@@ -21,13 +22,52 @@ class ApiIntegrator:
     self.latest_response = None
     self._setup_logging()
     self.i = 0
-
+    self.app = None
+    
+    # Check if we should run as server
+    if self.config.get('as_server', False):
+        self.app = Flask(__name__)
+        self._setup_endpoints()
+    
     # Initialize my_app_server
     self.vars['my_app_server'] = self.config.my_app_server if self.config.has(
       'my_app_server') else 'http://localhost:8000'
 
   def _setup_logging(self):
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    if self.config.get('as_server', False):
+        # For server mode, use Flask's logger
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    else:
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+  def _setup_endpoints(self):
+    """Setup Flask endpoints for each action in the config"""
+    for action_name in self.config.actions.keys():
+        endpoint = f'/{action_name}'
+        self.app.add_url_rule(
+            endpoint,
+            endpoint[1:],  # Route name
+            lambda a=action_name: self._handle_endpoint(a),
+            methods=['GET']
+        )
+        logging.info(f"Registered endpoint: {endpoint}")
+
+  def _handle_endpoint(self, action_name: str):
+    """Handle web requests to action endpoints"""
+    try:
+        self.perform_action(action_name)
+        response_data = {
+            'status': 'success',
+            'action': action_name,
+            'response': self.latest_response.body if self.latest_response else None
+        }
+        return jsonify(response_data)
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'action': action_name,
+            'error': str(e)
+        }), 500
 
   def perform_action(self, action_name: str, params: Obj = None):
     action = self.config.actions.get(action_name)
@@ -317,12 +357,16 @@ class ApiIntegrator:
     return value
 
 def main():
-  config_relative_path = 'infrastructure/config/reqres_in.yml'
-  integrator = ApiIntegrator(config_relative_path)
+    config_relative_path = 'infrastructure/config/reqres_in.yml'
+    integrator = ApiIntegrator(config_relative_path)
 
-  # Example usage
-  integrator.perform_action('test_crud')
-  # integrator.perform_action('get_item_part', Obj({'id_item': '123', 'id_part': '456'}))
+    if integrator.app:
+        # Run as web server if as_server is enabled
+        port = integrator.config.get('server_port', 4000)
+        integrator.app.run(host='0.0.0.0', port=port)
+    else:
+        # Run normally if not in server mode
+        integrator.perform_action('test_crud')
 
 if __name__ == '__main__':
-  main()
+    main()
