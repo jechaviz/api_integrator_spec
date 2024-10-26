@@ -356,3 +356,5 @@ constants:
 
 my_app_server:
   url: http://localhost:8000
+
+as_server: true
