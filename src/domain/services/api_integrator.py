@@ -22,6 +22,7 @@ class ApiIntegrator:
     self.latest_response = None
     self._setup_logging()
     self.i = 0
+    self.action_depth = 0  # Track recursion depth
     self.app = None
     
     # Check if we should run as server
@@ -89,15 +90,26 @@ class ApiIntegrator:
     if not action:
       raise ValueError(f"Action '{action_name}' not found in config")
     merged_params = Obj({**(params.to_dict() if params else {}), **self.vars.to_dict(), **self.constants.to_dict()})
-    self.i += 1
+    
+    # Increment depth counter
+    self.action_depth += 1
+    
+    # Only increment step counter at top level
+    if self.action_depth == 1:
+        self.i += 1
+    
     # logging.info(f'[{self.i}] {action_name} {merged_params}')
     logging.info(f'[{self.i}] {action_name}')
+    
     try:
         for perform in action.performs:
             self.execute_perform(perform, merged_params)
     finally:
-        # Reset counter when action finishes, whether successful or not
-        self.i = 0
+        # Decrement depth counter
+        self.action_depth -= 1
+        # Reset step counter only when exiting top level action
+        if self.action_depth == 0:
+            self.i = 0
 
   def execute_perform(self, perform_info: Obj, params: Obj):
     action = perform_info.perform
