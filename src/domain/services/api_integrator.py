@@ -92,8 +92,12 @@ class ApiIntegrator:
     self.i += 1
     # logging.info(f'[{self.i}] {action_name} {merged_params}')
     logging.info(f'[{self.i}] {action_name}')
-    for perform in action.performs:
-      self.execute_perform(perform, merged_params)
+    try:
+        for perform in action.performs:
+            self.execute_perform(perform, merged_params)
+    finally:
+        # Reset counter when action finishes, whether successful or not
+        self.i = 0
 
   def execute_perform(self, perform_info: Obj, params: Obj):
     action = perform_info.perform
