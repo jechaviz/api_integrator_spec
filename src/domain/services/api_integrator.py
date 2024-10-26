@@ -42,15 +42,30 @@ class ApiIntegrator:
 
   def _setup_endpoints(self):
     """Setup Flask endpoints for each action in the config"""
-    for action_name in self.config.actions.keys():
+    for action_name, action_config in self.config.actions.items():
         endpoint = f'/{action_name}'
+        methods = self._get_action_methods(action_config)
+        
         self.app.add_url_rule(
             endpoint,
             endpoint[1:],  # Route name
             lambda a=action_name: self._handle_endpoint(a),
-            methods=['GET']
+            methods=methods
         )
-        logging.info(f"Registered endpoint: {endpoint}")
+        logging.info(f"Registered endpoint: {endpoint} [{', '.join(methods)}]")
+
+  def _get_action_methods(self, action_config: Obj) -> List[str]:
+    """Extract HTTP methods from action configuration"""
+    methods = set()
+    
+    # Look through all performs to find HTTP methods
+    for perform in action_config.performs:
+        if isinstance(perform.perform, Obj) and perform.perform.action.startswith('http.'):
+            method = perform.perform.action.split('.')[1].upper()
+            methods.add(method)
+    
+    # If no HTTP methods found, default to GET
+    return list(methods) if methods else ['GET']
 
   def _handle_endpoint(self, action_name: str):
     """Handle web requests to action endpoints"""
