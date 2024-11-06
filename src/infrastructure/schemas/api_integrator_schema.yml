@@ -1,0 +1,152 @@
+# API Integrator Configuration Schema
+type: map
+mapping:
+  "api_integrator":
+    type: str
+    required: true
+    pattern: '^\d+\.\d+\.\d+$'  # Semantic versioning
+
+  "info":
+    type: map
+    required: true
+    mapping:
+      "title":
+        type: str
+        required: true
+      "version":
+        type: str
+        required: true
+        pattern: '^\d+\.\d+\.\d+$'
+      "description":
+        type: str
+        required: false
+      "contact":
+        type: map
+        required: false
+        mapping:
+          "name": 
+            type: str
+            required: false
+          "url": 
+            type: str
+            required: false
+            pattern: '^https?://'
+          "email":
+            type: str
+            required: false
+            pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+      "lang":
+        type: str
+        required: false
+        enum: ["python", "javascript", "java", "go"]
+
+  "supplier_servers":
+    type: seq
+    required: true
+    sequence:
+      - type: map
+        mapping:
+          "id":
+            type: str
+            required: true
+          "url":
+            type: str
+            required: true
+            pattern: '^https?://'
+          "description":
+            type: str
+            required: false
+
+  "tags":
+    type: seq
+    required: false
+    sequence:
+      - type: map
+        mapping:
+          "name":
+            type: str
+            required: true
+          "description":
+            type: str
+            required: false
+
+  "actions":
+    type: map
+    required: true
+    mapping:
+      =:  # Any action name
+        type: map
+        mapping:
+          "tags":
+            type: seq
+            required: false
+            sequence:
+              - type: str
+          "description":
+            type: str
+            required: false
+          "performs":
+            type: seq
+            required: true
+            sequence:
+              - type: map
+                mapping:
+                  "perform":
+                    type: map
+                    required: true
+                    mapping:
+                      "action":
+                        type: str
+                        required: true
+                      "data":
+                        type: map
+                        required: false
+                      "responses":
+                        type: seq
+                        required: false
+                        sequence:
+                          - type: map
+                            mapping:
+                              "is_success":
+                                type: map
+                                required: false
+                                mapping:
+                                  "code":
+                                    type: int
+                                    required: true
+                              "is_error":
+                                type: map
+                                required: false
+                                mapping:
+                                  "code":
+                                    type: int
+                                    required: true
+                              "performs":
+                                type: seq
+                                required: false
+                                sequence:
+                                  - type: map
+                                    mapping:
+                                      "perform":
+                                        type: map
+                                        required: true
+
+  "vars":
+    type: map
+    required: false
+
+  "constants":
+    type: map
+    required: false
+
+  "my_app_server":
+    type: map
+    required: false
+    mapping:
+      "url":
+        type: str
+        pattern: '^https?://'
+
+  "as_server":
+    type: bool
+    required: false

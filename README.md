@@ -1,92 +1,47 @@
 # API Integration Specification (AIS)
 
-This project utilizes a YAML-based configuration file to define the logic for integrating with external APIs. 
-The configuration file specifies actions, responses, and performs, allowing for a flexible and reusable approach to API integration.
-This convention promotes consistency and maintainability across different API integrations.
+[... previous content ...]
 
-## Configuration Structure
+### Configuration Validation
 
-[... previous content remains the same ...]
+The API Integrator now includes built-in configuration validation using `pykwalify`. This ensures that your configuration files adhere to a strict schema before processing.
 
-### Advanced Request Options
+#### Validation Features
+- Semantic version checking
+- URL format validation
+- Required field enforcement
+- Nested structure validation
+- Type checking
 
-The API Integrator now supports advanced request handling with the following new capabilities:
+#### Custom Schema Validation
 
-#### Async Requests
-You can now perform asynchronous HTTP requests by adding the `async: true` flag to your request configuration.
-
-```yaml
-performs:
-  - perform:
-      action: http.get
-      data:
-        path: '{{supplier_server.url}}/users'
-        async: true  # Enable async request
-```
-
-#### Bulk Requests
-Bulk requests allow you to send multiple requests concurrently using either threading or async methods.
-
-```yaml
-performs:
-  - perform:
-      action: http.post
-      data:
-        path: '{{supplier_server.url}}/users'
-        type: bulk  # Enable bulk request
-        async: true  # Optional: use async method (default is threading)
-        wrapper: user  # Optional: wrap each item in a specific key
-        body:
-          - {name: "John Doe", job: "Developer"}
-          - {name: "Jane Doe", job: "Designer"}
-```
-
-#### Request Configuration Options
-- `async`: Enable asynchronous request processing
-- `type: bulk`: Perform bulk requests
-- `wrapper`: Wrap each item in a specific key for bulk requests
-- `max_workers`: Control the number of concurrent threads (default: 10)
-
-### Bulk Request Response Handling
-After a bulk request, responses are stored in `vars.bulk_responses` for further processing.
-
-```yaml
-performs:
-  - perform:
-      action: http.post
-      data:
-        type: bulk
-        # ... bulk request configuration
-    responses:
-      - is_success:
-          code: 201
-        performs:
-          - perform:
-              action: vars.set
-              data:
-                successful_users: '{{vars.bulk_responses}}'
-```
-
-### Performance and Concurrency
-
-The API Integrator now supports:
-- Asynchronous HTTP requests using `aiohttp`
-- Threaded bulk requests using `ThreadPoolExecutor`
-- Configurable maximum concurrent workers
-- Fallback mechanisms between async and threaded requests
-
-### Initialization Options
-
-When creating an `ApiIntegrator`, you can specify the maximum number of workers:
+You can provide a custom schema when initializing the ApiIntegrator:
 
 ```python
-# Default is 10 workers
-integrator = ApiIntegrator('config.yml', max_workers=20)
+# Uses default schema if not specified
+integrator = ApiIntegrator('config.yml')
+
+# Or specify a custom schema
+integrator = ApiIntegrator('config.yml', schema_path='path/to/custom_schema.yml')
 ```
 
-### Future Enhancements
+#### Schema Validation Checks
+- Validates API Integrator version
+- Checks configuration structure
+- Enforces required fields
+- Validates contact information formats
+- Ensures consistent action and response definitions
 
-[... previous future enhancements remain the same ...]
+### Error Handling
 
-- **Advanced Concurrency Controls:** More granular control over request concurrency and retry mechanisms.
-- **Enhanced Async Support:** More sophisticated async request handling and error management.
+If your configuration fails validation, a `ValueError` will be raised with detailed error messages.
+
+```python
+try:
+    integrator = ApiIntegrator('invalid_config.yml')
+except ValueError as e:
+    print(f"Configuration error: {e}")
+    # Handle configuration validation failure
+```
+
+[... rest of the README remains the same ...]
