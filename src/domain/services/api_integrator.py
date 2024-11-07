@@ -42,7 +42,8 @@ class ApiIntegrator:
     self.action_depth = 0  # Track recursion depth
     self.app = None
     self.max_workers = max_workers
-    
+    self.config_path = config_path  # Save config path for updates
+
     # Check if we should run as server
     if self.config.get('as_server', False):
       self.app = Flask(__name__)
@@ -213,6 +214,23 @@ class ApiIntegrator:
 
     tasks = [single_request(item) for item in items]
     return await asyncio.gather(*tasks)
+
+  def _update_config_with_response(self, action_name: str, response: ApiResponse):
+    """Update configuration file with the error response."""
+    if self.config.get('enhance_conf_with_responses', False):
+      logging.info(f'Updating config with error response for {action_name}')
+      if not self.config.actions[action_name].has('sample_responses'):
+        self.config.actions[action_name].sample_responses = Obj([])
+
+      # Add the new error response to the sample_responses list
+      self.config.actions[action_name].sample_responses.append({
+        'status_code': response.status_code,
+        'body': response.body[:200]  # Limit body to 200 chars for readability
+      })
+
+      # Write updated config back to file
+      with open(self.config_path, 'w') as f:
+        f.write(self.config.to_yaml())
 
   def _handle_http(self, command: str, data: Obj, params: Obj):
     method = command.split('.')[1].upper()
