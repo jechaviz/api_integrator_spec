@@ -493,7 +493,7 @@ class ApiIntegrator:
 
 
 def main():
-  config_relative_path = 'infrastructure/config/reqres_in.yml'
+  config_relative_path = 'infrastructure/specs/api_integrator/cva_ai.yaml'
   integrator = ApiIntegrator(config_relative_path)
   integrator.perform_action('test_crud')
 

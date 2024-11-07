@@ -33,7 +33,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/lista_precios.xml'
-          headers: {}
           query:
             cliente: '{{cliente}}'
             codigo: '{{codigo}}'
@@ -60,7 +59,6 @@ actions:
             dimen: '{{dimen}}'
             Solucion: '{{Solucion}}'
             upc: '{{upc}}'
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -68,10 +66,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_high-resolution_images:
     tags:
     - Images
@@ -81,11 +76,9 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/imagenes_alta.xml'
-          headers: {}
           query:
             cliente: '{{cliente}}'
             clave: '{{clave}}'
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -93,10 +86,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_compatible_products:
     tags:
     - Compatibility
@@ -106,10 +96,8 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/productos_compatibles.xml'
-          headers: {}
           query:
             clave: '{{clave}}'
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -117,10 +105,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_catalog_of_brands:
     tags:
     - Catalogs
@@ -130,9 +115,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/marcas.xml'
-          headers: {}
-          query: {}
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -140,10 +122,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_catalog_of_groups:
     tags:
     - Catalogs
@@ -153,9 +132,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/grupos.xml'
-          headers: {}
-          query: {}
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -163,10 +139,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_catalog_of_brands_2:
     tags:
     - Catalogs
@@ -176,9 +149,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/marcas2.xml'
-          headers: {}
-          query: {}
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -186,10 +156,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_catalog_of_groups_2:
     tags:
     - Catalogs
@@ -199,9 +166,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/grupos2.xml'
-          headers: {}
-          query: {}
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -209,10 +173,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_catalog_of_solutions:
     tags:
     - Catalogs
@@ -222,9 +183,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/soluciones.xml'
-          headers: {}
-          query: {}
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -232,10 +190,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_catalog_of_cities:
     tags:
     - Catalogs
@@ -245,9 +200,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/ciudad.xml'
-          headers: {}
-          query: {}
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -255,10 +207,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_catalog_of_branches:
     tags:
     - Catalogs
@@ -268,9 +217,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/sucursales.xml'
-          headers: {}
-          query: {}
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -278,10 +224,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   get_catalog_of_courier_services:
     tags:
     - Catalogs
@@ -291,9 +234,6 @@ actions:
         action: http.get
         data:
           path: '{{supplier_server.url}}/catalogo_clientes_xml/paqueteria.xml'
-          headers: {}
-          query: {}
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -301,10 +241,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
   create_an_order:
     tags:
     - Orders
@@ -314,12 +251,10 @@ actions:
         action: http.post
         data:
           path: '{{supplier_server.url}}/pedidos_web/pedidos_ws_cva.php'
-          headers: {}
           query:
             Usuario: '{{Usuario}}'
             PWD: '{{PWD}}'
             XMLOC: '{{XMLOC}}'
-          body: {}
       responses:
       - is_success:
           code: 200
@@ -327,10 +262,7 @@ actions:
         - perform:
             action: log.info
             data: 'Response: {{response.body}}'
-        - perform:
-            action: vars.set
-            data:
-              last_response: '{{response.body}}'
+        - null
 vars:
   supplier_server:
     id: prod
