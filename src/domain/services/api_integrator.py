@@ -495,7 +495,10 @@ class ApiIntegrator:
 def main():
   config_relative_path = 'infrastructure/specs/api_integrator/cva_ai.yaml'
   integrator = ApiIntegrator(config_relative_path)
-  integrator.perform_action('test_crud')
+  for action_name, action_body in integrator.config.actions.items():
+    for perform in action_body.performs:
+      if perform.perform.action == 'http.get':
+        integrator.perform_action(action_name)
 
 
 if __name__ == '__main__':
