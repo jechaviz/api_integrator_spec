@@ -234,73 +234,86 @@ class ApiIntegrator:
 
   def _handle_http(self, command: str, data: Obj, params: Obj):
     method = command.split('.')[1].upper()
-    endpoint = data.get('path', '') or data.get('url', '')
-    url = self.render_template(endpoint, params)
-    headers = Obj({k: self.render_template(v, params) for k, v in data.get('headers', Obj({})).items()})
+    url = self._prepare_url(data, params)
+    headers_dict = self._prepare_headers(data, params)
+    query_dict = self._prepare_query(data, params)
     body_data = data.get('body', Obj({}))
+
+    if data.get('type') == 'bulk':
+      self._handle_bulk_request(method, url, body_data, headers_dict, data, params)
+    else:
+      self._handle_single_request(method, url, body_data, headers_dict, query_dict, data, params)
+
+  def _prepare_url(self, data: Obj, params: Obj) -> str:
+    endpoint = data.get('path', '') or data.get('url', '')
+    return self.render_template(endpoint, params)
+
+  def _prepare_headers(self, data: Obj, params: Obj) -> dict:
+    headers = Obj({k: self.render_template(v, params) for k, v in data.get('headers', Obj({})).items()})
+    return headers.to_dict()
+
+  def _prepare_query(self, data: Obj, params: Obj) -> dict:
     query = Obj({k: self.render_template(v, params) for k, v in data.get('query', Obj({})).items()})
+    return {k: v for k, v in query.to_dict().items() if v is not None}
 
-    # Remove None values from query parameters
-    query_dict = {k: v for k, v in query.to_dict().items() if v is not None}
-    headers_dict = headers.to_dict()
+  def _handle_bulk_request(self, method: str, url: str, body_data: Obj, headers_dict: dict, data: Obj, params: Obj):
+    wrapper = data.get('wrapper', '')
+    items = self.render_template(body_data, params)
 
-    # Check for async or threaded bulk request
-    if data.get('type') == 'bulk':
-      wrapper = data.get('wrapper', '')
-      items = self.render_template(body_data, params)
+    # Prefer async if available, fallback to threading
+    responses = self._execute_bulk_request(method, url, items, headers_dict, wrapper, data.get('async', False))
 
-      # Prefer async if available, fallback to threading
-      if data.get('async', False):
-        try:
-          responses = asyncio.run(self._async_bulk_request(method, url, items, headers_dict, wrapper))
-        except Exception as e:
-          logging.error(f'Async bulk request failed: {e}')
-          responses = self._threaded_bulk_request(method, url, items, headers_dict, wrapper)
-      else:
-        responses = self._threaded_bulk_request(method, url, items, headers_dict, wrapper)
+    # Store responses in vars for further processing
+    self.vars['bulk_responses'] = responses
+    self.latest_response = responses[-1] if responses else None
 
-      # Store responses in vars for further processing
-      self.vars['bulk_responses'] = responses
-      self.latest_response = responses[-1] if responses else None
-    else:
-      # Standard single request
-      body = self.render_template(json.dumps(body_data.to_dict()), params)
+    # Perform individual request logging and processing
+    for item in items:
+      wrapped_item = {wrapper: item} if wrapper else item
+      body = json.dumps(wrapped_item)
+      self._log_and_process_request(method, url, headers_dict, body, params)
 
-      # Check for async request
-      if data.get('async', False):
-        try:
-          response = asyncio.run(self._async_http_request(method, url, headers_dict, body, query_dict))
-        except Exception as e:
-          logging.error(f'Async request failed: {e}')
-          response = self.session.request(method, url, headers=headers_dict, data=body, params=query_dict)
-          response = ApiResponse(response)
-      else:
-        response = self.session.request(method, url, headers=headers_dict, data=body, params=query_dict)
-        response = ApiResponse(response)
+  def _handle_single_request(self, method: str, url: str, body_data: Obj, headers_dict: dict, query_dict: dict, data: Obj, params: Obj):
+    body = self.render_template(json.dumps(body_data.to_dict()), params)
+    
+    # Check for async request
+    response = self._execute_single_request(method, url, headers_dict, body, query_dict, data.get('async', False))
 
-      params['response'] = response
-      self.latest_response = response
-      self.vars['response'] = response
+    params['response'] = response
+    self.latest_response = response
+    self.vars['response'] = response
 
-    def request_response(body):
-      logging.info(f'Request: 🔹{method}🔹 {url} {headers} {query} {body}')
-      response = self.session.request(method, url, headers=headers.to_dict(), data=body, params=query_dict)
-      api_response = ApiResponse(response)
-      params['response'] = api_response
-      self.latest_response = api_response
-      self.vars['response'] = api_response
-      logging.info(f'Response [{response.status_code}] {response.text[:200]}')
+    # Log and process the request
+    self._log_and_process_request(method, url, headers_dict, body, params, query_dict)
 
-    if data.get('type') == 'bulk':
-      wrapper = data.get('wrapper', '')
-      items = self.render_template(body_data, params)
-      for item in items:
-        wrapped_item = {wrapper: item} if wrapper else item
-        body = json.dumps(wrapped_item)
-        request_response(body)
-    else:
-      body = self.render_template(json.dumps(body_data.to_dict()), params)
-      request_response(body)
+  def _execute_bulk_request(self, method: str, url: str, items: List, headers_dict: dict, wrapper: str, is_async: bool) -> List[ApiResponse]:
+    try:
+      if is_async:
+        return asyncio.run(self._async_bulk_request(method, url, items, headers_dict, wrapper))
+    except Exception as e:
+      logging.error(f'Async bulk request failed: {e}')
+    
+    return self._threaded_bulk_request(method, url, items, headers_dict, wrapper)
+
+  def _execute_single_request(self, method: str, url: str, headers_dict: dict, body: str, query_dict: dict, is_async: bool) -> ApiResponse:
+    try:
+      if is_async:
+        return asyncio.run(self._async_http_request(method, url, headers_dict, body, query_dict))
+    except Exception as e:
+      logging.error(f'Async request failed: {e}')
+    
+    response = self.session.request(method, url, headers=headers_dict, data=body, params=query_dict)
+    return ApiResponse(response)
+
+  def _log_and_process_request(self, method: str, url: str, headers: dict, body: str, params: Obj, query_dict: dict = None):
+    query_dict = query_dict or {}
+    logging.info(f'Request: 🔹{method}🔹 {url} {headers} {query_dict} {body}')
+    response = self.session.request(method, url, headers=headers, data=body, params=query_dict)
+    api_response = ApiResponse(response)
+    params['response'] = api_response
+    self.latest_response = api_response
+    self.vars['response'] = api_response
+    logging.info(f'Response [{response.status_code}] {response.text[:200]}')
 
   def _handle_log(self, command: str, data: Obj, params: Obj):
     level = command.split('.')[1]
