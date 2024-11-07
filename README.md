@@ -6,8 +6,6 @@ This convention promotes consistency and maintainability across different API in
 
 ## Configuration Structure
 
-The API Integrator now includes built-in configuration validation using `pykwalify`. This ensures that your configuration files adhere to a strict schema before processing.
-
 ### `api_integrator`
 - **Version**: Specifies the version of the API integrator.
 

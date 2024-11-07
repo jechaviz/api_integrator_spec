@@ -308,6 +308,8 @@ actions:
                   action: vars.set
                   data:
                     user_id: '{{response.body.id}}'
+                    name: '{{new_user_name}}'
+                    job: '{{new_user_job}}'
               - perform:
                   action: update_user_put
                 responses:

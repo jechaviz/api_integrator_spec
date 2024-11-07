@@ -89,47 +89,7 @@ mapping:
             type: seq
             required: true
             sequence:
-              - type: map
-                mapping:
-                  "perform":
-                    type: map
-                    required: true
-                    mapping:
-                      "action":
-                        type: str
-                        required: true
-                      "data":
-                        type: map
-                        required: false
-                      "responses":
-                        type: seq
-                        required: false
-                        sequence:
-                          - type: map
-                            mapping:
-                              "is_success":
-                                type: map
-                                required: false
-                                mapping:
-                                  "code":
-                                    type: int
-                                    required: true
-                              "is_error":
-                                type: map
-                                required: false
-                                mapping:
-                                  "code":
-                                    type: int
-                                    required: true
-                              "performs":
-                                type: seq
-                                required: false
-                                sequence:
-                                  - type: map
-                                    mapping:
-                                      "perform":
-                                        type: map
-                                        required: true
+              - ref: perform_mapping  # Reference to the specific perform structure for recursive nesting
 
   "vars":
     type: map
@@ -150,3 +110,48 @@ mapping:
   "as_server":
     type: bool
     required: false
+
+# Define perform_mapping for recursive use
+perform_mapping:  # Named mapping for "perform" structure to enable unlimited nesting
+  type: map
+  mapping:
+    "perform":
+      type: map
+      required: true
+      mapping:
+        "action":
+          type: str
+          required: true
+        "data":
+          type: map
+          required: false
+        "responses":
+          type: seq
+          required: false
+          sequence:
+            - type: map
+              mapping:
+                "is_success":
+                  type: map
+                  required: false
+                  mapping:
+                    "code":
+                      type: int
+                      required: true
+                    "performs":
+                      type: seq
+                      required: false
+                      sequence:
+                        - ref: perform_mapping  # Allow nesting of performs only within "perform"
+                "is_error":
+                  type: map
+                  required: false
+                  mapping:
+                    "code":
+                      type: int
+                      required: true
+                    "performs":
+                      type: seq
+                      required: false
+                      sequence:
+                        - ref: perform_mapping  # Allow nesting of performs only within "perform"

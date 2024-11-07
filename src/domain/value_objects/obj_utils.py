@@ -129,7 +129,7 @@ class Obj:
         output_file = Path(file_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_file, 'w') as f:
+        with open(output_file, 'w', encoding='utf-8') as f:
             yaml.dump(self.to_dict(), f, Dumper=OrderedDumper, sort_keys=False, default_flow_style=False)
 
     @classmethod
