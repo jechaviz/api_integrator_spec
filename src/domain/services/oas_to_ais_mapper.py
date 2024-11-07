@@ -145,11 +145,12 @@ class OasToApiIntegratorSpecificationMapper:
         'code': int(status_code)
       },
       'performs': [
-        self._create_log_perform(status_code),
-        self._create_vars_set_perform(response_data)
+        self._create_log_perform(status_code)
       ]
     }
-
+    vars_set_perform = self._create_vars_set_perform(response_data)
+    if vars_set_perform is not None:
+      response['performs'].append(vars_set_perform)
     return response
 
   def _create_log_perform(self, status_code: str) -> dict:
