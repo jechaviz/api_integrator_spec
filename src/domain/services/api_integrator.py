@@ -227,10 +227,7 @@ class ApiIntegrator:
         'status_code': response.status_code,
         'body': response.body[:200]  # Limit body to 200 chars for readability
       })
-
-      # Write updated config back to file
-      with open(self.config_path, 'w') as f:
-        f.write(self.config.to_yaml())
+      self.config.save(self.config_path)
 
   def _handle_http(self, command: str, data: Obj, params: Obj):
     method = command.split('.')[1].upper()
