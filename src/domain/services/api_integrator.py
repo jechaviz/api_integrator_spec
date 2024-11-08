@@ -216,18 +216,63 @@ class ApiIntegrator:
     return await asyncio.gather(*tasks)
 
   def _update_config_with_response(self, action_name: str, response: ApiResponse):
-    """Update configuration file with the error response."""
+    """Update configuration file with a deep nested response."""
     if self.config.get('enhance_conf_with_responses', False):
-      logging.info(f'Updating config with error response for {action_name}')
+      logging.info(f'Updating config with response for {action_name}')
+      
+      # Ensure sample_responses exists and is a list
       if not self.config.actions[action_name].has('sample_responses'):
         self.config.actions[action_name].sample_responses = Obj([])
 
-      # Add the new error response to the sample_responses list
-      self.config.actions[action_name].sample_responses.append({
+      # Try to parse the response body as JSON or XML
+      response_data = {}
+      try:
+        # Try JSON first
+        response_data = json.loads(response.body)
+      except json.JSONDecodeError:
+        try:
+          # If JSON fails, try XML parsing
+          root = ET.fromstring(response.body)
+          response_data = self._xml_to_dict(root)
+        except ET.ParseError:
+          # If both fail, use raw text
+          response_data = response.body[:200]
+
+      # Create a comprehensive response entry
+      response_entry = {
         'status_code': response.status_code,
-        'body': response.body[:200]  # Limit body to 200 chars for readability
-      })
+        'headers': dict(response.headers),
+        'body': response_data
+      }
+
+      # Add the new response to sample_responses
+      self.config.actions[action_name].sample_responses.append(response_entry)
+      
+      # Save the updated configuration
       self.config.save(self.config_path)
+
+  def _xml_to_dict(self, element: ET.Element) -> dict:
+    """Convert XML Element to a dictionary recursively."""
+    result = {}
+    for child in element:
+      if len(child) > 0:
+        # Nested element
+        if child.tag in result:
+          # Handle multiple elements with same tag
+          if not isinstance(result[child.tag], list):
+            result[child.tag] = [result[child.tag]]
+          result[child.tag].append(self._xml_to_dict(child))
+        else:
+          result[child.tag] = self._xml_to_dict(child)
+      else:
+        # Leaf element
+        result[child.tag] = child.text
+
+    # Add attributes if any
+    if element.attrib:
+      result['@attributes'] = element.attrib
+
+    return result
 
   def _handle_http(self, command: str, data: Obj, params: Obj):
     method = command.split('.')[1].upper()
@@ -307,6 +352,9 @@ class ApiIntegrator:
     logging.info(f'Request: 🔹{method}🔹 {url} {headers} {query_dict} {body}')
     response = self.session.request(method, url, headers=headers, data=body, params=query_dict)
     api_response = ApiResponse(response)
+
+    # update the configuration with the response
+    self._update_config_with_response(params.get('action_name','unknown_action'), api_response)
     params['response'] = api_response
     self.latest_response = api_response
     self.vars['response'] = api_response
