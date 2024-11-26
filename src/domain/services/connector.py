@@ -1,13 +1,9 @@
+import importlib
 from pathlib import Path
 from typing import Dict, List, Any
 from src.domain.services.config_loader import ConfigLoader
 from src.domain.services.template_engine import TemplateEngine
 from src.domain.services.response_handler import ResponseHandler
-from src.domain.services.connectors.http_connector import HttpConnector
-from src.domain.services.connectors.web_connector import WebConnector
-from src.domain.services.connectors.app_connector import AppConnector
-from src.domain.services.connectors.log_connector import LogConnector
-from src.domain.services.connectors.vars_connector import VarsConnector
 from src.domain.value_objects.obj_utils import Obj
 
 class Connector:
@@ -16,14 +12,12 @@ class Connector:
         self.config = ConfigLoader(config_path).load()
         self.response_handler = ResponseHandler()
         
-        # Initialize connectors
-        self.connectors = {
-            'http': HttpConnector(self),
-            'web': WebConnector(self),
-            'app': AppConnector(self),
-            'log': LogConnector(self),
-            'vars': VarsConnector(self)
-        }
+        # Load connector configuration
+        connector_config_path = Path(__file__).parent.parent.parent / 'infrastructure' / 'config' / 'connector.yml'
+        self.connector_config = Obj.from_yaml(connector_config_path)
+        
+        # Initialize connectors dynamically
+        self.connectors = self._initialize_connectors()
         
         # Initialize template engine
         self.template_engine = TemplateEngine(
@@ -74,6 +68,28 @@ class Connector:
         if 'responses' in perform_info:
             self._handle_responses(perform_info.responses, params)
             
+    def _initialize_connectors(self) -> Dict:
+        """Dynamically initialize connectors from configuration"""
+        connectors = {}
+        
+        for name, config in self.connector_config.connectors.items():
+            if not config.get('enabled', True):
+                continue
+                
+            try:
+                # Import connector class dynamically
+                module_path, class_name = config.class.rsplit('.', 1)
+                module = importlib.import_module(module_path)
+                connector_class = getattr(module, class_name)
+                
+                # Initialize connector
+                connectors[name] = connector_class(self)
+                
+            except Exception as e:
+                logging.error(f"Failed to initialize connector {name}: {e}")
+                
+        return connectors
+
     def _merge_params(self, params: Obj = None) -> Obj:
         """Merge provided params with vars and constants"""
         return Obj({
