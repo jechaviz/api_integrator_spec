@@ -2,32 +2,30 @@ import json
 import logging
 import re
 import xml.etree.ElementTree as ET
-import asyncio
-import aiohttp
-import requests
 from pathlib import Path
+from typing import Any, List, Union
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import partial
+
+import requests
+import aiohttp
+import asyncio
 from flask import Flask, jsonify
-from typing import Dict, List, Any, Union
+from snoop import snoop
+import pykwalify.core
 
 from src.domain.value_objects.api_response import ApiResponse
-from src.domain.services.connectors.http_connector import HttpConnector
-from src.domain.services.connectors.vars_connector import VarsConnector
-from src.domain.services.connectors.log_connector import LogConnector
-from src.domain.services.config_loader import ConfigLoader
-from src.domain.services.template_engine import TemplateEngine
-from src.domain.services.response_handler import ResponseHandler
-from src.domain.services.connector_registry import ConnectorRegistry
 from src.domain.value_objects.obj_utils import Obj
 
-class Connector:
+
+class ApiIntegrator:
   def __init__(self, config_path: str, max_workers: int = 10, schema_path: str = None):
     config_path = Path(__file__).resolve().parent.parent.parent / config_path
-    
+
     # Default schema path if not provided
     # if schema_path is None:
     #  schema_path = Path(__file__).resolve().parent.parent.parent / 'infrastructure' / 'schemas' / 'api_integrator_schema.yml'
-    
+
     # Validate configuration against schema
     # try:
     #  pykwalify.core.Core(source_file=str(config_path), schema_files=[str(schema_path)]).validate()
@@ -58,7 +56,8 @@ class Connector:
 
   def _setup_logging(self):
     if not self.config.get('as_server', False):
-      logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+      logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
+                          datefmt='%Y-%m-%d %H:%M:%S')
 
   def _setup_endpoints(self):
     '''Setup Flask endpoints for each action in the config'''
@@ -128,38 +127,10 @@ class Connector:
       if self.action_depth == 0:
         self.action_number = 0
 
-  def __init__(self, config_path: str, max_workers: int = 10, schema_path: str = None):
-    config_path = Path(__file__).resolve().parent.parent.parent / config_path
-    
-    self.config = Obj.from_yaml(config_path)
-    self.vars = self.config.vars if self.config.has('vars') else Obj({})
-    self.constants = self.config.constants if self.config.has('constants') else Obj({})
-    self.session = requests.Session()
-    self.latest_response = None
-    self._setup_logging()
-    self.action_number = 0
-    self.action_depth = 0
-    self.app = None
-    self.max_workers = max_workers
-    self.config_path = config_path
-
-    # Initialize connectors
-    self.connectors = {
-      'http': HttpConnector(self),
-      'vars': VarsConnector(self),
-      'log': LogConnector(self)
-    }
-
-    if self.config.get('as_server', False):
-      self.app = Flask(__name__)
-      self._setup_endpoints()
-
-    self.vars['my_app_server'] = self.config.my_app_server if self.config.has(
-      'my_app_server') else 'http://localhost:8000'
-
   def execute_perform(self, perform_info: Obj, params: Obj):
     action = perform_info.perform
     data = action.data if isinstance(action, Obj) and action.has('data') else Obj({})
+    # logging.info(f'Perform: {action}')
 
     if isinstance(action, Obj):
       action_str = action.action
@@ -170,16 +141,22 @@ class Connector:
 
     action_parts = action_str.split('.')
     if len(action_parts) > 1:
-      connector_type = action_parts[0]
-      if connector_type in self.connectors:
-        self.connectors[connector_type].execute(action_str, data, params)
+      handler_name = f'_handle_{action_parts[0]}'
+      handler = getattr(self, handler_name, None)
+      if handler:
+        handler(action_str, data, params)
       else:
-        raise ValueError(f'Unknown connector type: {connector_type}')
+        raise ValueError(f'Unknown action: {action_str}')
     else:
       if action_str in self.config.actions:
         self.perform_action(action_str, params)
       else:
-        raise ValueError(f'Unknown action: {action_str}')
+        handler_name = f'_handle_{action_str}'
+        handler = getattr(self, handler_name, None)
+        if handler:
+          handler(data, params)
+        else:
+          raise ValueError(f'Unknown action: {action_str}')
 
     if 'responses' in perform_info:
       self._handle_responses(perform_info.responses, params)
@@ -241,63 +218,18 @@ class Connector:
     return await asyncio.gather(*tasks)
 
   def _update_config_with_response(self, action_name: str, response: ApiResponse):
-    """Update configuration file with a deep nested response."""
+    """Update configuration file with the error response."""
     if self.config.get('enhance_conf_with_responses', False):
-      logging.info(f'Updating config with response for {action_name}')
-      
-      # Ensure sample_responses exists and is a list
+      logging.info(f'Updating config with error response for {action_name}')
       if not self.config.actions[action_name].has('sample_responses'):
         self.config.actions[action_name].sample_responses = Obj([])
 
-      # Try to parse the response body as JSON or XML
-      response_data = {}
-      try:
-        # Try JSON first
-        response_data = json.loads(response.body)
-      except json.JSONDecodeError:
-        try:
-          # If JSON fails, try XML parsing
-          root = ET.fromstring(response.body)
-          response_data = self._xml_to_dict(root)
-        except ET.ParseError:
-          # If both fail, use raw text
-          response_data = response.body[:200]
-
-      # Create a comprehensive response entry
-      response_entry = {
+      # Add the new error response to the sample_responses list
+      self.config.actions[action_name].sample_responses.append({
         'status_code': response.status_code,
-        'headers': dict(response.headers),
-        'body': response_data
-      }
-
-      # Add the new response to sample_responses
-      self.config.actions[action_name].sample_responses.append(response_entry)
-      
-      # Save the updated configuration
+        'body': response.body[:200]  # Limit body to 200 chars for readability
+      })
       self.config.save(self.config_path)
-
-  def _xml_to_dict(self, element: ET.Element) -> dict:
-    """Convert XML Element to a dictionary recursively."""
-    result = {}
-    for child in element:
-      if len(child) > 0:
-        # Nested element
-        if child.tag in result:
-          # Handle multiple elements with same tag
-          if not isinstance(result[child.tag], list):
-            result[child.tag] = [result[child.tag]]
-          result[child.tag].append(self._xml_to_dict(child))
-        else:
-          result[child.tag] = self._xml_to_dict(child)
-      else:
-        # Leaf element
-        result[child.tag] = child.text
-
-    # Add attributes if any
-    if element.attrib:
-      result['@attributes'] = element.attrib
-
-    return result
 
   def _handle_http(self, command: str, data: Obj, params: Obj):
     method = command.split('.')[1].upper()
@@ -340,9 +272,10 @@ class Connector:
       body = json.dumps(wrapped_item)
       self._log_and_process_request(method, url, headers_dict, body, params)
 
-  def _handle_single_request(self, method: str, url: str, body_data: Obj, headers_dict: dict, query_dict: dict, data: Obj, params: Obj):
+  def _handle_single_request(self, method: str, url: str, body_data: Obj, headers_dict: dict, query_dict: dict,
+                             data: Obj, params: Obj):
     body = self.render_template(json.dumps(body_data.to_dict()), params)
-    
+
     # Check for async request
     response = self._execute_single_request(method, url, headers_dict, body, query_dict, data.get('async', False))
 
@@ -353,33 +286,33 @@ class Connector:
     # Log and process the request
     self._log_and_process_request(method, url, headers_dict, body, params, query_dict)
 
-  def _execute_bulk_request(self, method: str, url: str, items: List, headers_dict: dict, wrapper: str, is_async: bool) -> List[ApiResponse]:
+  def _execute_bulk_request(self, method: str, url: str, items: List, headers_dict: dict, wrapper: str,
+                            is_async: bool) -> List[ApiResponse]:
     try:
       if is_async:
         return asyncio.run(self._async_bulk_request(method, url, items, headers_dict, wrapper))
     except Exception as e:
       logging.error(f'Async bulk request failed: {e}')
-    
+
     return self._threaded_bulk_request(method, url, items, headers_dict, wrapper)
 
-  def _execute_single_request(self, method: str, url: str, headers_dict: dict, body: str, query_dict: dict, is_async: bool) -> ApiResponse:
+  def _execute_single_request(self, method: str, url: str, headers_dict: dict, body: str, query_dict: dict,
+                              is_async: bool) -> ApiResponse:
     try:
       if is_async:
         return asyncio.run(self._async_http_request(method, url, headers_dict, body, query_dict))
     except Exception as e:
       logging.error(f'Async request failed: {e}')
-    
+
     response = self.session.request(method, url, headers=headers_dict, data=body, params=query_dict)
     return ApiResponse(response)
 
-  def _log_and_process_request(self, method: str, url: str, headers: dict, body: str, params: Obj, query_dict: dict = None):
+  def _log_and_process_request(self, method: str, url: str, headers: dict, body: str, params: Obj,
+                               query_dict: dict = None):
     query_dict = query_dict or {}
     logging.info(f'Request: 🔹{method}🔹 {url} {headers} {query_dict} {body}')
     response = self.session.request(method, url, headers=headers, data=body, params=query_dict)
     api_response = ApiResponse(response)
-
-    # update the configuration with the response
-    self._update_config_with_response(params.get('action_name','unknown_action'), api_response)
     params['response'] = api_response
     self.latest_response = api_response
     self.vars['response'] = api_response
@@ -595,7 +528,7 @@ class Connector:
 
 def main():
   config_relative_path = 'infrastructure/specs/api_integrator/cva_ai.yaml'
-  integrator = Connector(config_relative_path)
+  integrator = ApiIntegrator(config_relative_path)
   for action_name, action_body in integrator.config.actions.items():
     for perform in action_body.performs:
       if perform.perform.action == 'http.get':

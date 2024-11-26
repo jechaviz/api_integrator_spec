@@ -14,7 +14,7 @@ class Connector:
         self.response_handler = ResponseHandler()
         
         # Load connector configuration
-        connector_config_path = Path(__file__).parent.parent.parent / 'infrastructure' / 'config' / 'connector.yml'
+        connector_config_path = Path(__file__).parent.parent.parent / 'infrastructure/config/connector.yml'
         self.connector_config = Obj.from_yaml(connector_config_path)
         
         # Initialize connectors dynamically
