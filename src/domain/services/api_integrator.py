@@ -9,52 +9,11 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, jsonify
 from typing import Dict, List, Any, Union
-from dataclasses import dataclass
 
-@dataclass
-class ApiResponse:
-    """Wrapper for HTTP responses"""
-    _response: requests.Response
-
-    @property
-    def status_code(self) -> int:
-        return self._response.status_code
-
-    @property
-    def headers(self) -> dict:
-        return self._response.headers
-
-    @property
-    def text(self) -> str:
-        return self._response.text
-
-    @property
-    def body(self) -> str:
-        return self._response.text
-
-    def json(self) -> Union[dict, list]:
-        return self._response.json()
-
-class HttpConnector:
-    def __init__(self, api):
-        self.api = api
-        
-    def execute(self, action_str: str, data: Any, params: Any):
-        self.api._handle_http(action_str, data, params)
-
-class VarsConnector:
-    def __init__(self, api):
-        self.api = api
-        
-    def execute(self, action_str: str, data: Any, params: Any):
-        self.api._handle_vars(action_str, data, params)
-
-class LogConnector:
-    def __init__(self, api):
-        self.api = api
-        
-    def execute(self, action_str: str, data: Any, params: Any):
-        self.api._handle_log(action_str, data, params)
+from src.domain.value_objects.api_response import ApiResponse
+from src.domain.services.connectors.http_connector import HttpConnector
+from src.domain.services.connectors.vars_connector import VarsConnector
+from src.domain.services.connectors.log_connector import LogConnector
 from src.domain.services.config_loader import ConfigLoader
 from src.domain.services.template_engine import TemplateEngine
 from src.domain.services.response_handler import ResponseHandler
