@@ -55,11 +55,17 @@ class Connector:
         if connector_type not in self.connectors:
             raise ValueError(f"Unknown connector type: {connector_type}")
             
+        connector = self.connectors[connector_type]
+        
+        # Validate operation is supported
+        if action_str not in connector.supported_operations:
+            raise ValueError(f"Operation {action_str} not supported by connector {connector_type}")
+            
         # Render templates in data
         rendered_data = self.template_engine.render(data, params)
         
         # Execute via appropriate connector
-        result = self.connectors[connector_type].execute(action_str, rendered_data, params)
+        result = connector.execute(action_str, rendered_data, params)
         
         # Handle response if present
         if hasattr(result, 'response'):
@@ -75,6 +81,7 @@ class Connector:
         
         for name, config in self.connector_config.connectors.items():
             if not config.get('enabled', True):
+                logging.info(f"Connector {name} is disabled, skipping")
                 continue
                 
             try:
@@ -83,8 +90,17 @@ class Connector:
                 module = importlib.import_module(module_path)
                 connector_class = getattr(module, class_name)
                 
-                # Initialize connector
-                connectors[name] = connector_class(self)
+                # Initialize connector with its config
+                connector = connector_class(self)
+                
+                # Store supported operations
+                connector.supported_operations = config.get('supports', [])
+                
+                # Store connector config
+                connector.config = config.get('config', {})
+                
+                connectors[name] = connector
+                logging.info(f"Initialized connector {name} with {len(connector.supported_operations)} operations")
                 
             except Exception as e:
                 logging.error(f"Failed to initialize connector {name}: {e}")
