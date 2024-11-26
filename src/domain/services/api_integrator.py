@@ -125,10 +125,38 @@ class ApiIntegrator:
       if self.action_depth == 0:
         self.action_number = 0
 
+  def __init__(self, config_path: str, max_workers: int = 10, schema_path: str = None):
+    config_path = Path(__file__).resolve().parent.parent.parent / config_path
+    
+    self.config = Obj.from_yaml(config_path)
+    self.vars = self.config.vars if self.config.has('vars') else Obj({})
+    self.constants = self.config.constants if self.config.has('constants') else Obj({})
+    self.session = requests.Session()
+    self.latest_response = None
+    self._setup_logging()
+    self.action_number = 0
+    self.action_depth = 0
+    self.app = None
+    self.max_workers = max_workers
+    self.config_path = config_path
+
+    # Initialize connectors
+    self.connectors = {
+      'http': HttpConnector(self),
+      'vars': VarsConnector(self),
+      'log': LogConnector(self)
+    }
+
+    if self.config.get('as_server', False):
+      self.app = Flask(__name__)
+      self._setup_endpoints()
+
+    self.vars['my_app_server'] = self.config.my_app_server if self.config.has(
+      'my_app_server') else 'http://localhost:8000'
+
   def execute_perform(self, perform_info: Obj, params: Obj):
     action = perform_info.perform
     data = action.data if isinstance(action, Obj) and action.has('data') else Obj({})
-    # logging.info(f'Perform: {action}')
 
     if isinstance(action, Obj):
       action_str = action.action
@@ -139,22 +167,16 @@ class ApiIntegrator:
 
     action_parts = action_str.split('.')
     if len(action_parts) > 1:
-      handler_name = f'_handle_{action_parts[0]}'
-      handler = getattr(self, handler_name, None)
-      if handler:
-        handler(action_str, data, params)
+      connector_type = action_parts[0]
+      if connector_type in self.connectors:
+        self.connectors[connector_type].execute(action_str, data, params)
       else:
-        raise ValueError(f'Unknown action: {action_str}')
+        raise ValueError(f'Unknown connector type: {connector_type}')
     else:
       if action_str in self.config.actions:
         self.perform_action(action_str, params)
       else:
-        handler_name = f'_handle_{action_str}'
-        handler = getattr(self, handler_name, None)
-        if handler:
-          handler(data, params)
-        else:
-          raise ValueError(f'Unknown action: {action_str}')
+        raise ValueError(f'Unknown action: {action_str}')
 
     if 'responses' in perform_info:
       self._handle_responses(perform_info.responses, params)
