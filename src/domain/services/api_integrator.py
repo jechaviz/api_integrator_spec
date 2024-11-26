@@ -1,26 +1,11 @@
-import json
-import logging
-import re
-import xml.etree.ElementTree as ET
-from pathlib import Path
-from typing import Any, List, Union
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from functools import partial
-
-import requests
-import aiohttp
-import asyncio
-from flask import Flask, jsonify
-from snoop import snoop
-import pykwalify.core
-
-from src.domain.value_objects.api_response import ApiResponse
+from typing import Dict
+from src.domain.services.config_loader import ConfigLoader
+from src.domain.services.template_engine import TemplateEngine
+from src.domain.services.response_handler import ResponseHandler
+from src.domain.services.connector_registry import ConnectorRegistry
 from src.domain.value_objects.obj_utils import Obj
-from src.domain.services.connectors.http_connector import HttpConnector
-from src.domain.services.connectors.vars_connector import VarsConnector
-from src.domain.services.connectors.log_connector import LogConnector
 
-class ApiIntegrator:
+class Connector:
   def __init__(self, config_path: str, max_workers: int = 10, schema_path: str = None):
     config_path = Path(__file__).resolve().parent.parent.parent / config_path
     
