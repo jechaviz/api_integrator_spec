@@ -16,6 +16,9 @@ import pykwalify.core
 
 from src.domain.value_objects.api_response import ApiResponse
 from src.domain.value_objects.obj_utils import Obj
+from src.domain.services.connectors.http_connector import HttpConnector
+from src.domain.services.connectors.vars_connector import VarsConnector
+from src.domain.services.connectors.log_connector import LogConnector
 
 class ApiIntegrator:
   def __init__(self, config_path: str, max_workers: int = 10, schema_path: str = None):
