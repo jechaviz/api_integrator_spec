@@ -78,7 +78,7 @@ class Connector:
                 
             try:
                 # Import connector class dynamically
-                module_path, class_name = config.class.rsplit('.', 1)
+                module_path, class_name = config.class_path.rsplit('.', 1)
                 module = importlib.import_module(module_path)
                 connector_class = getattr(module, class_name)
                 

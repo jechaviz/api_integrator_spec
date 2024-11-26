@@ -1,17 +1,17 @@
 # Global connector configuration
 connectors:
   http:
-    class: src.domain.services.connectors.http_connector.HttpConnector
+    class_path: src.domain.services.connectors.http_connector.HttpConnector
     enabled: true
   web:
-    class: src.domain.services.connectors.web_connector.WebConnector
+    class_path: src.domain.services.connectors.web_connector.WebConnector
     enabled: true
   app:
-    class: src.domain.services.connectors.app_connector.AppConnector
+    class_path: src.domain.services.connectors.app_connector.AppConnector
     enabled: true
   log:
-    class: src.domain.services.connectors.log_connector.LogConnector
+    class_path: src.domain.services.connectors.log_connector.LogConnector
     enabled: true
   vars:
-    class: src.domain.services.connectors.vars_connector.VarsConnector
+    class_path: src.domain.services.connectors.vars_connector.VarsConnector
     enabled: true
