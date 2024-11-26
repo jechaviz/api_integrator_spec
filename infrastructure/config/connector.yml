@@ -3,15 +3,57 @@ connectors:
   http:
     class_path: src.domain.services.connectors.http_connector.HttpConnector
     enabled: true
+    supports:
+      - http.get
+      - http.post
+      - http.put
+      - http.delete
+      - http.patch
+    config:
+      max_workers: 10
+      timeout: 30
+
   web:
     class_path: src.domain.services.connectors.web_connector.WebConnector
     enabled: true
+    supports:
+      - fill.css
+      - fill.xpath
+      - click.submit
+      - click.button
+      - select.option
+    config:
+      driver: selenium
+      timeout: 10
+
   app:
     class_path: src.domain.services.connectors.app_connector.AppConnector
     enabled: true
-  log:
-    class_path: src.domain.services.connectors.log_connector.LogConnector
-    enabled: true
+    supports:
+      - app.*
+    config:
+      load_paths:
+        - src.my_package
+        - src.other_package
+
   vars:
     class_path: src.domain.services.connectors.vars_connector.VarsConnector
     enabled: true
+    supports:
+      - vars.set
+      - vars.get
+      - vars.delete
+    config:
+      persistence: memory
+
+  log:
+    class_path: src.domain.services.connectors.log_connector.LogConnector
+    enabled: true
+    supports:
+      - log.info
+      - log.error
+      - log.debug
+      - log.warning
+    config:
+      format: "%(asctime)s - %(levelname)s - %(message)s"
+      level: INFO
